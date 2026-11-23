@@ -54,6 +54,45 @@ export const D = {
     hi: "उत्तर एन्क्रिप्ट किए जाते हैं और केवल PLINTH द्वारा आपका डोज़ियर तैयार करने में उपयोग होते हैं। ये आपके बच्चे के स्कूल के साथ साझा नहीं किए जाते, और शिक्षक आपके उत्तर नहीं देखते। आप कभी भी सहमति वापस ले सकते हैं, और आपके परिवार के उत्तर हटा दिए जाएँगे।",
   },
 
+  /* landing v2 */
+  triAria: { en: "Three views of your child come together in one dossier.", hi: "आपके बच्चे की तीन दृष्टियाँ एक डोज़ियर में एक साथ आती हैं।" },
+  triChild: { en: "Your child", hi: "आपका बच्चा" },
+  triChildSub: { en: "In their own words", hi: "अपने शब्दों में" },
+  triParent: { en: "You", hi: "आप" },
+  triParentSub: { en: "What you see at home", hi: "घर पर आप क्या देखते हैं" },
+  triTeacher: { en: "A teacher", hi: "एक शिक्षक" },
+  triTeacherSub: { en: "What school sees", hi: "स्कूल में क्या दिखता है" },
+  triCore: {
+    en: "One dossier, read and approved by a person at PLINTH before it reaches you.",
+    hi: "एक डोज़ियर, जिसे आप तक पहुँचने से पहले PLINTH का एक व्यक्ति पढ़ता और स्वीकृत करता है।",
+  },
+  ageNote: { en: "For children aged 6 to 18.", hi: "6 से 18 वर्ष के बच्चों के लिए।" },
+  howLead: {
+    en: "Three steps. Nothing is collected until you have given consent.",
+    hi: "तीन चरण। आपकी सहमति से पहले कुछ भी एकत्र नहीं किया जाता।",
+  },
+  term1k: { en: "Encrypted", hi: "एन्क्रिप्टेड" },
+  term1v: {
+    en: "Every answer is encrypted when it is saved. Answers are used only for your family’s dossiers, never for advertising.",
+    hi: "हर उत्तर सहेजते समय एन्क्रिप्ट किया जाता है। उत्तर केवल आपके परिवार के डोज़ियर के लिए उपयोग होते हैं, विज्ञापन के लिए कभी नहीं।",
+  },
+  term2k: { en: "Not shared with the school", hi: "स्कूल के साथ साझा नहीं" },
+  term2v: {
+    en: "Your child’s school does not see the answers, and the teacher does not see yours. The one exception, a safeguarding concern, is explained in the privacy notice.",
+    hi: "आपके बच्चे का स्कूल उत्तर नहीं देखता, और शिक्षक आपके उत्तर नहीं देखते। एकमात्र अपवाद, सुरक्षा से जुड़ी चिंता, गोपनीयता सूचना में समझाया गया है।",
+  },
+  term3k: { en: "Read by a person", hi: "एक व्यक्ति पढ़ता है" },
+  term3v: {
+    en: "A person at PLINTH reads and approves every dossier before it is sent to you.",
+    hi: "आपको भेजे जाने से पहले PLINTH का एक व्यक्ति हर डोज़ियर पढ़ता और स्वीकृत करता है।",
+  },
+  term4k: { en: "Yours to withdraw", hi: "सहमति वापस लेना आपके हाथ में" },
+  term4v: {
+    en: "Withdraw consent at any time from this portal, and your family’s answers are deleted.",
+    hi: "आप इस पोर्टल से कभी भी सहमति वापस ले सकते हैं, और तब आपके परिवार के उत्तर हटा दिए जाते हैं।",
+  },
+  closingLine: { en: "Beginning takes about two minutes.", hi: "शुरू करने में लगभग दो मिनट लगते हैं।" },
+
   /* start */
   startTitle: { en: "Start your child’s profile", hi: "अपने बच्चे की प्रोफ़ाइल शुरू करें" },
   startLead: {
