@@ -41,7 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="foot-grid">
             <div className="endorse">
               <span className="endorse-label">{t(lang, "initiative")}</span>
-              <img src="/plinth-logo-lockup-navy.svg" alt="PLINTH Network" width={109} height={36} />
+              <img src="/plinth-network-horizontal-navy.svg" alt="PLINTH Network" width={157} height={34} />
             </div>
             <div className="foot-text">
               <p>{t(lang, "footerNote")}</p>

@@ -1,6 +1,6 @@
 /**
  * PLINTH HDI lockup: the official PLINTH monogram and "PLINTH" letterforms, taken unchanged from
- * the approved PLINTH Network lockup vector (public/plinth-logo-lockup-navy.svg). Only the
+ * the approved PLINTH HDI angular-P mark (traced from PLINTH_LOGO.pdf, Sept 2026). Only the
  * "NETWORK" line is replaced by "HDI", set in Jost 500, centred under PLINTH and enlarged about 1.5x
  * over the original subline so the product name stays legible at header size.
  * Single colour (currentColor): brand navy on light grounds, white on dark.
