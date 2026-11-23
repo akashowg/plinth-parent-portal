@@ -5,6 +5,7 @@ import { caseByToken, decodeCase, submittedSources } from "@/lib/cases";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { STUDENT_QUESTIONS } from "@/lib/questions";
+import { parentCaseId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function StudentForm({ params }: { params: Promise<{ token:
     );
   }
   const first = decodeCase(c).child.name.split(/\s+/)[0];
+  const parentHere = (await parentCaseId()) === c.id;
 
   return (
     <div className="wrap">
@@ -42,6 +44,11 @@ export default async function StudentForm({ params }: { params: Promise<{ token:
         doneView={
           <div className="panel panel-accent">
             <h2>{t(lang, "studentThanks")}</h2>
+            {parentHere && (
+              <p style={{ marginTop: 16 }}>
+                <a href="/case">{t(lang, "parentBack")}</a>
+              </p>
+            )}
           </div>
         }
       >

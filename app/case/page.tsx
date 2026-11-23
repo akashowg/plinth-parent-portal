@@ -71,9 +71,15 @@ export default async function CasePage({ searchParams }: { searchParams: Promise
         <p>{t(lang, "step2Lead")}</p>
         {!locked && !have.has("student") && (
           <>
+            <div className="row">
+              <a className="btn" href={`/s/${tokens.student}`}>
+                {t(lang, "fillHere")}
+              </a>
+            </div>
+            <p className="small" style={{ marginTop: 4 }}>{t(lang, "orShare")}</p>
             <div className="linkbox">{studentUrl}</div>
             <div className="row">
-              <a className="btn" href={wa(t(lang, "waStudent"), studentUrl)} target="_blank" rel="noopener">
+              <a className="btn btn-quiet" href={wa(t(lang, "waStudent"), studentUrl)} target="_blank" rel="noopener">
                 {t(lang, "sendWhatsApp")}
               </a>
               <CopyButton text={studentUrl} label={t(lang, "copyLink")} copiedLabel={t(lang, "copied")} />

@@ -11,11 +11,12 @@ const D = {
     hi: "PLINTH HDI एक विकासात्मक समझ है — यह कोई परीक्षा, निदान या भविष्यवाणी नहीं है।",
   },
   privacy: { en: "Privacy notice", hi: "गोपनीयता सूचना" },
+  initiative: { en: "A PLINTH Network initiative", hi: "PLINTH Network की एक पहल" },
   signIn: { en: "Sign in", hi: "साइन इन" },
   signOut: { en: "Sign out", hi: "साइन आउट" },
 
   /* landing */
-  kicker: { en: "PLINTH HDI · Human Development Intelligence", hi: "PLINTH HDI · मानव विकास इंटेलिजेंस" },
+  kicker: { en: "Human Development Intelligence · by PLINTH Network", hi: "मानव विकास इंटेलिजेंस · PLINTH Network द्वारा" },
   heroTitle: {
     en: "Understand how your child is growing — in their words, and yours.",
     hi: "समझिए कि आपका बच्चा कैसे बढ़ रहा है — उसके शब्दों में, और आपके शब्दों में।",
@@ -145,9 +146,12 @@ const D = {
   editForm: { en: "Review or change my answers", hi: "मेरे उत्तर देखें या बदलें" },
   step2: { en: "Your child’s form", hi: "आपके बच्चे का फ़ॉर्म" },
   step2Lead: {
-    en: "Send this link to your child, or open it on your device. Let them answer in their own words; please do not answer for them. For a child under 8, sit beside them and write their words as they say them.",
-    hi: "यह लिंक अपने बच्चे को भेजें, या अपने फ़ोन पर खोलें। उन्हें अपने शब्दों में उत्तर देने दें; कृपया उनकी ओर से उत्तर न दें। 8 वर्ष से छोटे बच्चे के साथ बैठें और जैसा वह बोले वैसा ही लिखें।",
+    en: "Your child can fill it here on this device now, or you can send them the link. Let them answer in their own words; please do not answer for them. For a child under 8, sit beside them and write their words as they say them.",
+    hi: "आपका बच्चा इसे अभी इसी फ़ोन या कंप्यूटर पर भर सकता है, या आप उसे लिंक भेज सकते हैं। उन्हें अपने शब्दों में उत्तर देने दें; कृपया उनकी ओर से उत्तर न दें। 8 वर्ष से छोटे बच्चे के साथ बैठें और जैसा वह बोले वैसा ही लिखें।",
   },
+  fillHere: { en: "My child will fill it here now", hi: "मेरा बच्चा इसे अभी यहीं भरेगा" },
+  orShare: { en: "Or send the link to your child:", hi: "या अपने बच्चे को लिंक भेजें:" },
+  parentBack: { en: "Parent: back to your child’s profile", hi: "अभिभावक: बच्चे की प्रोफ़ाइल पर वापस जाएँ" },
   step3: { en: "One teacher’s form", hi: "एक शिक्षक का फ़ॉर्म" },
   step3Lead: {
     en: "Send this link to one teacher who knows your child well — a class teacher, a subject teacher or a coach. The teacher must write it themselves: a teacher’s independent view is what makes the profile reliable.",

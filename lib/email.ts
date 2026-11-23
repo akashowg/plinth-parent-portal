@@ -24,7 +24,7 @@ export async function sendMail(mail: Mail): Promise<{ ok: boolean; dev?: boolean
         auth: { user: gmailUser, pass: gmailPass.replace(/\s+/g, "") },
       });
       await transport.sendMail({
-        from: optionalEnv("EMAIL_FROM") ?? `PLINTH <${gmailUser}>`,
+        from: optionalEnv("EMAIL_FROM") ?? `PLINTH HDI <${gmailUser}>`,
         to: mail.to,
         subject: mail.subject,
         text: mail.text,
