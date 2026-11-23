@@ -25,18 +25,14 @@ export function databaseUrl(): string {
 }
 
 /** Settings the portal cannot run without. Shown on the admin page when any is missing. */
-export const REQUIRED_SETTINGS = [
-  "DATA_ENCRYPTION_KEY",
-  "ADMIN_PASSWORD",
-  "RESEND_API_KEY",
-  "EMAIL_FROM",
-  "CONTACT_EMAIL",
-  "PUBLIC_BASE_URL",
-] as const;
+export const REQUIRED_SETTINGS = ["DATA_ENCRYPTION_KEY", "ADMIN_PASSWORD", "CONTACT_EMAIL", "PUBLIC_BASE_URL"] as const;
 
 export function missingSettings(): string[] {
   const missing: string[] = REQUIRED_SETTINGS.filter((n) => !optionalEnv(n));
   if (!optionalEnv("DATABASE_URL") && !optionalEnv("POSTGRES_URL")) missing.unshift("database (DATABASE_URL or a Vercel Storage database)");
+  const gmail = optionalEnv("GMAIL_USER") && optionalEnv("GMAIL_APP_PASSWORD");
+  const resend = optionalEnv("RESEND_API_KEY") && optionalEnv("EMAIL_FROM");
+  if (!gmail && !resend) missing.push("email (GMAIL_USER + GMAIL_APP_PASSWORD)");
   return missing;
 }
 

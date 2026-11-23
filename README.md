@@ -32,10 +32,14 @@ Use **Supabase** (free tier is enough to start):
 
 Any Postgres works (Neon via the Vercel Marketplace also does), but choose a region in or near India. The tables are created automatically on first use.
 
-### 2. Set up email (Resend)
+### 2. Set up email (Gmail)
 
-1. resend.com → add and verify a sending domain (for example `plinthnetwork.in`).
-2. Create an API key.
+Codes are sent from your Gmail account (about 500 emails a day).
+
+1. Google Account → Security → turn on **2-Step Verification** if it is off.
+2. Google Account → search **App passwords** → create one named "PLINTH portal". Copy the 16-character password.
+
+(Resend with your own domain also works: set `RESEND_API_KEY` and `EMAIL_FROM` instead of the two Gmail settings.)
 
 ### 3. Import the repository
 
@@ -53,13 +57,14 @@ The quickest database route is Vercel → Project → **Storage** → Create →
 | `DATA_ENCRYPTION_KEY` | 32-byte key: run `openssl rand -base64 32` in Terminal. **Also save it in your password manager: if it is lost, stored answers cannot be read.** |
 | `SESSION_SECRET` | *Optional.* If unset, a signing key is derived from `DATA_ENCRYPTION_KEY` |
 | `ADMIN_PASSWORD` | A long password only you know, for `/admin` |
-| `RESEND_API_KEY` | From step 2 |
-| `EMAIL_FROM` | e.g. `PLINTH <care@plinthnetwork.in>` (must be on the verified domain) |
+| `GMAIL_USER` | The Gmail address codes are sent from |
+| `GMAIL_APP_PASSWORD` | The app password from step 2 |
+| `EMAIL_FROM` | *Optional.* Display name and address, e.g. `PLINTH <you@gmail.com>`; defaults to `PLINTH <GMAIL_USER>` |
 | `CONTACT_EMAIL` | The address shown in the privacy notice for questions and grievances |
 | `PUBLIC_BASE_URL` | The site address, e.g. `https://parents.plinthnetwork.in` (used in the child and teacher links) |
 | `ADMIN_EMAIL` | *Optional.* Where new-profile and form-received alerts go. Alerts never contain answers |
 
-Never set `DEV_SHOW_CODES` on Vercel.
+Never set `DEV_SHOW_CODES` on Vercel. After adding or changing settings, redeploy (Deployments → ⋯ → Redeploy).
 
 ### 5. Custom domain (optional)
 
