@@ -1,3 +1,4 @@
+import { langInfo, type Lang } from "@/lib/i18n/langs";
 import { redirect } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
 import CopyButton from "@/components/CopyButton";
@@ -11,7 +12,7 @@ import { caseContext } from "@/lib/instrument/store";
 
 export const dynamic = "force-dynamic";
 
-function Badge({ ok, lang }: { ok: boolean; lang: "en" | "hi" }) {
+function Badge({ ok, lang }: { ok: boolean; lang: Lang }) {
   return <span className={`badge ${ok ? "badge-ok" : "badge-wait"}`}>{ok ? t(lang, "received") : t(lang, "waiting")}</span>;
 }
 
@@ -31,7 +32,7 @@ export default async function CasePage({ searchParams }: { searchParams: Promise
   const studentUrl = `${baseUrl()}/s/${tokens.student}`;
   const teacherUrl = `${baseUrl()}/t/${tokens.teacher}`;
   const wa = (msg: string, url: string) => `https://wa.me/?text=${encodeURIComponent(`${msg} ${url}`)}`;
-  const verifiedOn = new Date(c.verified_at).toLocaleDateString(lang === "hi" ? "hi-IN" : "en-IN", {
+  const verifiedOn = new Date(c.verified_at).toLocaleDateString(langInfo(lang).locale, {
     day: "numeric", month: "long", year: "numeric",
   });
 

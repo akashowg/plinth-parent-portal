@@ -1,10 +1,12 @@
 import InstrumentForm from "@/components/InstrumentForm";
+import { isolate } from "@/lib/i18n/langs";
 import { caseByToken, decodeCase, submittedSources } from "@/lib/cases";
 import { safeguardingContactName } from "@/lib/email";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { loadDraft } from "@/lib/instrument/device";
 import { formFor } from "@/lib/instrument/store";
+import { formDict } from "@/lib/i18n/form-dict";
 import { parentCaseId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +45,7 @@ export default async function StudentForm({ params }: { params: Promise<{ token:
       <ul>
         <li>{t(lang, "assent1")}</li>
         <li>{t(lang, "assent2")}</li>
-        <li>{t(lang, "assent5").replace("{name}", contact)}</li>
+        <li>{t(lang, "assent5").replace("{name}", isolate(lang, contact))}</li>
       </ul>
     </div>
   ) : (
@@ -53,7 +55,7 @@ export default async function StudentForm({ params }: { params: Promise<{ token:
         <li>{t(lang, "assent2")}</li>
         <li>{t(lang, "assent3")}</li>
         <li>{t(lang, "assent4")}</li>
-        <li>{t(lang, "assent5").replace("{name}", contact)}</li>
+        <li>{t(lang, "assent5").replace("{name}", isolate(lang, contact))}</li>
       </ul>
     </div>
   );
@@ -66,6 +68,7 @@ export default async function StudentForm({ params }: { params: Promise<{ token:
       <InstrumentForm
         def={def}
         lang={lang}
+        dict={formDict(def, lang)}
         token={token}
         initial={draft}
         pinRequired

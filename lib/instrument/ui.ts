@@ -1,7 +1,7 @@
 import type { Lang } from "./types";
 
 /** Interface text for the instrument forms (English and Hindi; Hindi pending native review). */
-const U = {
+export const U = {
   next: { en: "Continue", hi: "आगे बढ़ें" },
   back: { en: "Back", hi: "पीछे" },
   submit: { en: "Submit", hi: "जमा करें" },
@@ -69,8 +69,9 @@ const U = {
 
 export type UKey = keyof typeof U;
 
-export function u(lang: Lang, k: UKey, vars?: Record<string, string | number>): string {
-  let s: string = U[k][lang];
+/** dict: the catalog subset for this language (passed from the server), used for languages beyond English and Hindi. */
+export function u(lang: Lang, k: UKey, vars?: Record<string, string | number>, dict?: Record<string, string>): string {
+  let s: string = lang === "en" || lang === "hi" ? U[k][lang] : (dict?.[U[k].en] ?? U[k].en);
   if (vars) for (const [a, b] of Object.entries(vars)) s = s.replaceAll(`{${a}}`, String(b));
   return s;
 }

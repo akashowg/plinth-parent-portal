@@ -1,4 +1,5 @@
 import ActionForm from "@/components/ActionForm";
+import { isolate } from "@/lib/i18n/langs";
 import { startCase } from "@/app/actions";
 import { CONSENT_ITEMS } from "@/lib/consent";
 import { getLang } from "@/lib/lang";
@@ -107,7 +108,7 @@ export default async function Start() {
             {CONSENT_ITEMS.map((k) => (
               <label key={k} className="check">
                 <input type="checkbox" name={k} value="yes" required />
-                <span>{t(lang, k as Key).replace("{name}", contact)}</span>
+                <span>{t(lang, k as Key).replace("{name}", isolate(lang, contact))}</span>
               </label>
             ))}
           </div>

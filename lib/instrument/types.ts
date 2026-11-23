@@ -8,7 +8,7 @@
  * a child at 11 with the same child at 15.
  */
 
-export type Lang = "en" | "hi";
+export type { Lang } from "../i18n/langs";
 export type T = { en: string; hi: string };
 export type Band = "A" | "B" | "C";
 export type Source = "student" | "parent" | "teacher";

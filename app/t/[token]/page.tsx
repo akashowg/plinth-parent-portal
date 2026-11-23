@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { loadDraft } from "@/lib/instrument/device";
 import { formFor } from "@/lib/instrument/store";
+import { formDict } from "@/lib/i18n/form-dict";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ export default async function TeacherForm({ params }: { params: Promise<{ token:
       <InstrumentForm
         def={def}
         lang={lang}
+        dict={formDict(def, lang)}
         token={token}
         initial={draft && "answers" in draft ? draft : null}
         preface={

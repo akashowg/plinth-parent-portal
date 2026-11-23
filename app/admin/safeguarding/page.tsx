@@ -3,7 +3,7 @@ import ActionForm from "@/components/ActionForm";
 import { adminAddTerm, adminTestLexicon, adminToggleTerm } from "@/app/actions";
 import { open } from "@/lib/crypto";
 import { db } from "@/lib/db";
-import { CATEGORY_LABEL, CATEGORY_SEVERITY, LEXICON_SIZE, LEXICON_VERSION, type Category, type LexiconHit } from "@/lib/instrument/lexicon";
+import { CATEGORY_LABEL, CATEGORY_SEVERITY, LEXICON_LANGUAGES, LEXICON_SIZE, LEXICON_VERSION, type Category, type LexiconHit } from "@/lib/instrument/lexicon";
 import type { TermRow } from "@/lib/instrument/store";
 import { isAdmin } from "@/lib/session";
 
@@ -39,7 +39,7 @@ export default async function SafeguardingAdmin({ searchParams }: { searchParams
       <a href="/admin">← Queue</a>
       <h1 style={{ marginTop: 12 }}>Safeguarding lexicon</h1>
       <p className="muted">
-        {LEXICON_VERSION} · {LEXICON_SIZE} built-in patterns in English, Hindi and Hinglish, plus {terms.filter((t) => t.active).length} active
+        {LEXICON_VERSION} · {LEXICON_SIZE} built-in patterns in {LEXICON_LANGUAGES.join(", ")} (the nine native-script lists beyond Hindi are a starter set for native-speaker review), plus {terms.filter((t) => t.active).length} active
         reviewer phrase(s). Written answers that match go to a person and never to the engine. Urgent categories alert you to act the same
         day; context such as a negation or a story is shown to you but never silences a match.
       </p>

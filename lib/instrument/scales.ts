@@ -68,20 +68,25 @@ export const TUITION: Opt[] = [
 export const HOME_LANGUAGES: Opt[] = [
   { v: "hindi", t: { en: "Hindi", hi: "हिंदी" } },
   { v: "english", t: { en: "English", hi: "अंग्रेज़ी" } },
+  { v: "bengali", t: { en: "Bengali", hi: "बांग्ला" } },
+  { v: "marathi", t: { en: "Marathi", hi: "मराठी" } },
+  { v: "telugu", t: { en: "Telugu", hi: "तेलुगु" } },
+  { v: "tamil", t: { en: "Tamil", hi: "तमिल" } },
+  { v: "gujarati", t: { en: "Gujarati", hi: "गुजराती" } },
+  { v: "urdu", t: { en: "Urdu", hi: "उर्दू" } },
+  { v: "kannada", t: { en: "Kannada", hi: "कन्नड़" } },
+  { v: "odia", t: { en: "Odia", hi: "ओड़िया" } },
+  { v: "malayalam", t: { en: "Malayalam", hi: "मलयालम" } },
   { v: "chhattisgarhi", t: { en: "Chhattisgarhi", hi: "छत्तीसगढ़ी" } },
   { v: "halbi", t: { en: "Halbi", hi: "हल्बी" } },
   { v: "gondi", t: { en: "Gondi", hi: "गोंडी" } },
-  { v: "bengali", t: { en: "Bengali", hi: "बांग्ला" } },
-  { v: "odia", t: { en: "Odia", hi: "ओड़िया" } },
-  { v: "marathi", t: { en: "Marathi", hi: "मराठी" } },
-  { v: "telugu", t: { en: "Telugu", hi: "तेलुगु" } },
   { v: "other", t: { en: "Another language", hi: "कोई अन्य भाषा" } },
 ];
 
+/** Language of instruction: the ten largest Indian languages plus English, a mix, or another language. */
 export const INSTRUCTION_LANGUAGES: Opt[] = [
-  { v: "english", t: { en: "English", hi: "अंग्रेज़ी" } },
-  { v: "hindi", t: { en: "Hindi", hi: "हिंदी" } },
-  { v: "mixed", t: { en: "A mix of English and Hindi", hi: "अंग्रेज़ी और हिंदी दोनों" } },
+  ...HOME_LANGUAGES.filter((o) => !["chhattisgarhi", "halbi", "gondi", "other"].includes(o.v)),
+  { v: "mixed", t: { en: "A mix of English and an Indian language", hi: "अंग्रेज़ी और किसी भारतीय भाषा का मिश्रण" } },
   { v: "other", t: { en: "Another language", hi: "कोई अन्य भाषा" } },
 ];
 

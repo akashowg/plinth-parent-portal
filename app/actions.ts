@@ -32,11 +32,8 @@ async function issueCode(emailHash: string, email: string, caseId: string, purpo
   await sql`insert into codes (email_hash, case_id, code_hash, purpose, expires_at)
             values (${emailHash}, ${caseId}, ${lookupHash("code:" + code)}, ${purpose}, now() + interval '10 minutes')`;
   const lang = await getLang();
-  const subject = lang === "hi" ? `PLINTH HDI सत्यापन कोड: ${code}` : `Your PLINTH HDI verification code: ${code}`;
-  const text =
-    lang === "hi"
-      ? `आपका PLINTH HDI कोड ${code} है। यह 10 मिनट तक मान्य है।\n\nयदि आपने यह अनुरोध नहीं किया, तो इस ईमेल को अनदेखा करें।\n\n— PLINTH HDI · PLINTH Network की एक पहल`
-      : `Your PLINTH HDI code is ${code}. It works for 10 minutes.\n\nIf you did not ask for this, you can ignore this email.\n\n— PLINTH HDI · a PLINTH Network initiative`;
+  const subject = t(lang, "emailSubject").replace("{code}", code);
+  const text = t(lang, "emailBody").replace("{code}", code);
   const sent = await sendMail({ to: email, subject, text });
   if (!sent.ok) return { mailFailed: true as const };
   return { code: devShowCodes() ? code : undefined };

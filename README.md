@@ -2,7 +2,7 @@
 
 The parent-facing front door for PLINTH HDI. Parents give verifiable consent, fill the parent form, and send ready-made links to their child and one teacher. Every submission lands in a private admin queue as a paste-ready intake for **PLINTH Studio**. The portal does **not** generate or show reports: Akash generates, reviews and signs off every dossier in Studio, then sends it to the family.
 
-English and Hindi. No payments. Built with Next.js 16 and Postgres, hosted on Vercel (Mumbai region).
+Eleven languages — English, Hindi, Bengali, Marathi, Telugu, Tamil, Gujarati, Urdu (right-to-left), Kannada, Odia and Malayalam (India's ten most spoken, Census 2011, plus English). No payments. Built with Next.js 16 and Postgres, hosted on Vercel (Mumbai region).
 
 ## What it does
 
@@ -23,7 +23,7 @@ Answers save as respondents go. Parent and teacher drafts resume only on the dev
 
 **Validity checks.** Attention checks, consistency pairs, implausible-virtue items, straightlining (invalidates the section), section timing, reverse-coding, parent visibility weighting, teacher tenure/class-size weighting, cross-source divergence, plus "someone was watching" for the child form.
 
-**Safeguarding (flag, do not screen).** SG-1 child rarely feels okay · SG-2 no adult at school to go to · SG-3 sleep under 5 h or a marked mood/energy change · **SG-4U** written words suggesting possible current harm (self-harm, abuse, neglect, exploitation, forced marriage) — same-day, URGENT email with 112 / 1098 / Tele-MANAS 14416 guidance · SG-4 distress, bullying, fear of home, substances · RV a reviewer-only note. The lexicon (`lib/instrument/lexicon.ts`, tested by `npx tsx tests/lexicon.test.ts`) covers English, Hindi and Hinglish across ten categories, shows context (negation, someone else, a story, the past) without ever silencing a match, and can be extended without a deploy at **/admin/safeguarding**, which also counts real alerts versus false alarms per category. Each trigger emails the named contact (`SAFEGUARDING_EMAIL`, else `ADMIN_EMAIL`, else `CONTACT_EMAIL`) with codes only, and **locks the Studio export** until it is actioned with a note. Matched text never enters the export.
+**Safeguarding (flag, do not screen).** SG-1 child rarely feels okay · SG-2 no adult at school to go to · SG-3 sleep under 5 h or a marked mood/energy change · **SG-4U** written words suggesting possible current harm (self-harm, abuse, neglect, exploitation, forced marriage) — same-day, URGENT email with 112 / 1098 / Tele-MANAS 14416 guidance · SG-4 distress, bullying, fear of home, substances · RV a reviewer-only note. The lexicon (`lib/instrument/lexicon.ts`, tested by `npx tsx tests/lexicon.test.ts`) covers English, Hinglish and Hindi plus native-script stems in the nine other portal languages, across ten categories — every answer is scanned in every language, whatever the interface is set to — shows context (negation, someone else, a story, the past) without ever silencing a match, and can be extended without a deploy at **/admin/safeguarding**, which also counts real alerts versus false alarms per category. Each trigger emails the named contact (`SAFEGUARDING_EMAIL`, else `ADMIN_EMAIL`, else `CONTACT_EMAIL`) with codes only, and **locks the Studio export** until it is actioned with a note. Matched text never enters the export.
 
 **Source integrity.** If the teacher's text repeats the parent's (word-phrase overlap ≥ 25% warns, ≥ 60% flags as duplicate), the admin page and the exported intake both say so, matching the Studio rule.
 
@@ -102,11 +102,17 @@ Studio (on the Mac) recognises a v2.0 export automatically (`plinth/ledger.py`, 
 
 The item bank lives in `lib/instrument/`: `student.ts`, `parent.ts`, `teacher.ts` (English and Hindi side by side), `constructs.ts` (which items feed which construct, and the HDI-7 / PIC-5 mapping), `scoring.ts` (validity and ledger), `derived.ts`, `safeguarding.ts`. Item keys are permanent: never reuse a key for a different question — retire it and add a new one, then change `INSTRUMENT_VERSION` in `forms.ts`. Interface text lives in `lib/i18n.ts` and `lib/instrument/ui.ts`.
 
+## Languages
+
+English and Hindi are written side by side in the code. The other nine languages are catalogs in `lib/i18n/catalogs/<code>.json` — arrays aligned to `lib/i18n/source.json`, which is **append-only** (a string keeps its index forever, so changing or adding text never shifts existing translations). Anything without a translation falls back to English.
+
+After changing any English text: `npx tsx scripts/i18n-extract.ts` (adds new strings to the end of `source.json` and reports what each language is missing), translate the new indices into `lib/i18n/work/<code>.<n>.json` as `{"index": "text"}`, run `python3 scripts/i18n-merge.py` (checks placeholders, line breaks and script, then writes the catalogs), and confirm with `npx tsx tests/i18n-coverage.test.ts`. Child-facing text uses the informal register (তুমি, तू, నువ్వు, நீ, તું, تم, ನೀನು, ତୁମେ, നീ); parent and teacher text is formal. Urdu pages are right-to-left; names and email addresses inserted into Urdu sentences are wrapped in Unicode isolates so they keep their own order. Fonts are Noto, loaded per script only when that script appears on the page. Every non-English, non-Hindi page carries a short note that the translation is a draft under native-speaker review.
+
 ## Before launch — needs a decision or a review
 
 - **Pilot first.** v2.0 is a pre-pilot instrument. Run stage V0 (think-aloud with 12 children, 4 per band) before wider use, and describe it as a structured developmental inventory, not a validated assessment, until V3.
-- **Hindi text** should be read by a native speaker, especially the child forms.
-- **Safeguarding lexicon v2** passes its corpus (56/56 risk phrasings, 0/22 benign false alarms) but that corpus was written in-house. Before scale, have a child-protection professional review the categories and urgency rules, and add regional-language phrases (Chhattisgarhi, Halbi, Gondi) at /admin/safeguarding from real cases. Decide the named contact for school-referred families.
+- **Translations.** Hindi and the nine catalog languages are careful drafts and should each be read by a native speaker before families use them — the child forms first (register, gender forms in Marathi and Urdu, how a 12-year-old reads each question), then consent and the privacy notice, which carry legal weight. Until a language is reviewed, the on-page note asks families to switch to English or Hindi if anything is unclear.
+- **Safeguarding lexicon v3** passes its corpus (88/88 risk phrasings across twelve languages, 0/33 benign false alarms) but that corpus was written in-house. Before scale, have a child-protection professional review the categories and urgency rules, have native-speaking safeguarding staff review the nine native-script lists (they are a starter set), and add regional-language phrases (Chhattisgarhi, Halbi, Gondi) at /admin/safeguarding from real cases. Decide the named contact for school-referred families.
 - **Legal review.** The consent points, privacy notice (`app/privacy/page.tsx`), the safeguarding promise, the 30-day erasure promise and the email-code method of verifying a parent need a lawyer's check against the DPDP Rules before children's data obligations apply (14 May 2027).
 - **Back-ups.** Turn on Supabase backups (point-in-time recovery on a paid plan) and keep the encryption key safe.
 

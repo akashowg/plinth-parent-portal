@@ -1,11 +1,11 @@
-import type { Lang } from "./instrument/types";
+import type { Lang } from "./i18n/langs";
+import { tr } from "./i18n/translate";
 
 /**
  * Interface text in English and Hindi. Hindi drafted for review by a native speaker before launch.
  */
-const D = {
+export const D = {
   portal: { en: "Parent Portal", hi: "अभिभावक पोर्टल" },
-  switchTo: { en: "हिन्दी", hi: "English" },
   footerNote: {
     en: "PLINTH HDI is a developmental reading, not a test, diagnosis or prediction.",
     hi: "PLINTH HDI एक विकासात्मक समझ है — यह कोई परीक्षा, निदान या भविष्यवाणी नहीं है।",
@@ -232,7 +232,7 @@ const D = {
   saved: { en: "Thank you — your answers are saved.", hi: "धन्यवाद — आपके उत्तर सहेज लिए गए हैं।" },
   backToProfile: { en: "Back to the profile", hi: "प्रोफ़ाइल पर वापस जाएँ" },
   answerHint: {
-    en: "Write as much or as little as feels right. There are no right or wrong answers. You can write in English or Hindi.",
+    en: "Write as much or as little as feels right. There are no right or wrong answers. You can write in English, Hindi or any language you are comfortable in.",
     hi: "जितना ठीक लगे उतना लिखें। कोई उत्तर सही या गलत नहीं है। आप हिन्दी या अंग्रेज़ी में लिख सकते हैं।",
   },
   parentFormTitle: { en: "Parent form", hi: "अभिभावक फ़ॉर्म" },
@@ -287,11 +287,21 @@ const D = {
     en: "This link is not valid any more. Please ask the parent for a new link.",
     hi: "यह लिंक अब मान्य नहीं है। कृपया अभिभावक से नया लिंक माँगें।",
   },
+  emailSubject: { en: "Your PLINTH HDI verification code: {code}", hi: "PLINTH HDI सत्यापन कोड: {code}" },
+  emailBody: {
+    en: "Your PLINTH HDI code is {code}. It works for 10 minutes.\n\nIf you did not ask for this, you can ignore this email.\n\n— PLINTH HDI · a PLINTH Network initiative",
+    hi: "आपका PLINTH HDI कोड {code} है। यह 10 मिनट तक मान्य है।\n\nयदि आपने यह अनुरोध नहीं किया, तो इस ईमेल को अनदेखा करें।\n\n— PLINTH HDI · PLINTH Network की एक पहल",
+  },
+  language: { en: "Language", hi: "भाषा" },
+  translationNote: {
+    en: "This language version is a careful draft translation and is being reviewed by native speakers. If anything is unclear, choose English or Hindi.",
+    hi: "यह भाषा संस्करण सावधानी से किया गया प्रारंभिक अनुवाद है और मातृभाषी इसकी समीक्षा कर रहे हैं। कुछ अस्पष्ट लगे तो अंग्रेज़ी या हिंदी चुनें।",
+  },
   alreadyAnswered: {
     en: "These answers have already been received. Thank you.",
     hi: "ये उत्तर पहले ही प्राप्त हो चुके हैं। धन्यवाद।",
   },
-} satisfies Record<string, Record<Lang, string>>;
+} satisfies Record<string, { en: string; hi: string }>;
 
 export type Key = keyof typeof D;
-export const t = (lang: Lang, key: Key) => D[key][lang];
+export const t = (lang: Lang, key: Key): string => tr(lang, D[key].en, D[key].hi);

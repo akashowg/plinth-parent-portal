@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { discardDraft, saveDraft, submitInstrument, unlockDraft } from "@/app/instrument-actions";
 import { ANCHORS } from "@/lib/instrument/scales";
 import type { Answer, Answers, FormDef, Item, Lang, Opt } from "@/lib/instrument/types";
-import { u } from "@/lib/instrument/ui";
+import { u, type UKey } from "@/lib/instrument/ui";
 import { chosenSubjects, gridKeys, isVisible, SKIP, textLength, validateSection, type Problem } from "@/lib/instrument/validate";
 
 type DraftData = { answers: Answers; timings: Record<string, number>; step: number };
@@ -15,17 +15,35 @@ type Props = {
   initial?: DraftData | { locked: true; step: number } | null;
   /** Child forms: drafts are sealed with a 4-digit code the child chooses, and the page locks when left idle. */
   pinRequired?: boolean;
+  /** Catalog subset for languages beyond English and Hindi. */
+  dict?: Dict;
   /** Shown above the first section (assent, notice, administrator guidance). */
   preface?: ReactNode;
   done: ReactNode;
 };
+
+
+type Dict = Record<string, string>;
+type TT = { en: string; hi: string };
+/** Localise authored text: English and Hindi come from the source, other languages from the server-supplied dict. */
+function loc(lang: Lang, x: TT, dict?: Dict): string {
+  if (lang === "en") return x.en;
+  if (lang === "hi") return x.hi;
+  return dict?.[x.en] ?? x.en;
+}
+function useText(lang: Lang, dict?: Dict) {
+  return {
+    L: (x: TT) => loc(lang, x, dict),
+    uu: (k: UKey, v?: Record<string, string | number>) => u(lang, k, v, dict),
+  };
+}
 
 const PILL_KINDS = new Set(["freq", "obs", "a3", "rate"]);
 const WEAK_PINS = new Set(["1234", "4321", "0123", "1212", "2580", "1122", "1004", "2000", "2025", "2026"]);
 const IDLE_MS = 2 * 60 * 1000;
 const HIDDEN_MS = 30 * 1000;
 
-export default function InstrumentForm({ def, lang, token, initial, preface, done, pinRequired }: Props) {
+export default function InstrumentForm({ def, lang, token, initial, preface, done, pinRequired, dict }: Props) {
   const startLocked = !!initial && "locked" in initial;
   const draft = !startLocked ? (initial as DraftData | null | undefined) : null;
   const [answers, setAnswers] = useState<Answers>(draft?.answers ?? {});
@@ -45,7 +63,7 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
   const dirty = useRef(false);
 
   const section = def.sections[step];
-  const L = (x: { en: string; hi: string }) => x[lang];
+  const { L, uu } = useText(lang, dict);
 
   // Earliest section the respondent may return to (sections marked lockOnLeave close once passed).
   const minStep = useMemo(() => {
@@ -143,7 +161,7 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
       if (pinRequired && !pin) {
         const bad = !/^\d{4}$/.test(pinA) ? "pinInvalid" : pinA !== pinB ? "pinMismatch" : /^(\d)\1{3}$/.test(pinA) || WEAK_PINS.has(pinA) ? "pinSimple" : null;
         if (bad) {
-          setPinError(u(lang, bad));
+          setPinError(uu(bad));
           setTimeout(() => document.getElementById("q-pin")?.scrollIntoView({ behavior: "smooth", block: "center" }), 30);
           return;
         }
@@ -175,19 +193,19 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
         const i = def.sections.findIndex((s) => s.id === r.section);
         if (i >= 0) setStep(i);
         setProblems(r.problems);
-        setError(u(lang, "fixBelow"));
+        setError(uu("fixBelow"));
         return;
       }
       setError(
-        r.error === "link" ? u(lang, "errLink")
-        : r.error === "locked" ? u(lang, "errLocked")
-        : r.error === "done" ? u(lang, "errDone")
-        : r.error === "session" ? u(lang, "errSession")
-        : u(lang, "fixBelow"),
+        r.error === "link" ? uu("errLink")
+        : r.error === "locked" ? uu("errLocked")
+        : r.error === "done" ? uu("errDone")
+        : r.error === "session" ? uu("errSession")
+        : uu("fixBelow"),
       );
     } catch {
       setStatus("idle");
-      setError(u(lang, "errNetwork"));
+      setError(uu("errNetwork"));
     }
   };
 
@@ -197,6 +215,7 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
     return (
       <Unlock
         lang={lang}
+        dict={dict}
         onUnlock={async (code) => {
           const r = await unlockDraft({ token, pin: code });
           if (r.ok) {
@@ -207,9 +226,9 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
             setGate(null);
             return null;
           }
-          if (r.error === "wrong") return u(lang, "wrongPin", { left: r.left });
+          if (r.error === "wrong") return uu("wrongPin", { left: r.left });
           setGate(null); // reset or nothing left: start fresh
-          return r.error === "reset" ? u(lang, "resetDone") : null;
+          return r.error === "reset" ? uu("resetDone") : null;
         }}
         onStartAgain={async () => {
           await discardDraft({ token });
@@ -222,9 +241,10 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
     return (
       <Unlock
         lang={lang}
+        dict={dict}
         paused
         onUnlock={async (code) => {
-          if (code !== pin) return u(lang, "wrongLocal");
+          if (code !== pin) return uu("wrongLocal");
           shownAt.current = Date.now();
           setPaused(false);
           return null;
@@ -242,30 +262,30 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
         <div style={{ width: `${Math.round(((step + 1) / def.sections.length) * 100)}%` }} />
       </div>
       <p className="inst-step">
-        {u(lang, "section")} {step + 1} {u(lang, "of")} {def.sections.length}
-        <span className="inst-save">{status === "saving" ? u(lang, "saving") : status === "saved" ? u(lang, "savedDraft") : ""}</span>
+        {uu("section")} {step + 1} {uu("of")} {def.sections.length}
+        <span className="inst-save">{status === "saving" ? uu("saving") : status === "saved" ? uu("savedDraft") : ""}</span>
       </p>
       {step === 0 && preface}
       <h2 className="inst-title">{L(section.title)}</h2>
       {section.lead && <p className="inst-lead">{L(section.lead)}</p>}
-      {step > 0 && minStep === step && def.sections[step - 1]?.lockOnLeave && <p className="small muted">{u(lang, "lockedBehind")}</p>}
+      {step > 0 && minStep === step && def.sections[step - 1]?.lockOnLeave && <p className="small muted">{uu("lockedBehind")}</p>}
 
       <div className="inst-items">
         {visible.map((item) => (
-          <Field key={item.k} item={item} def={def} lang={lang} answers={answers} set={set} problem={problemFor(item.k)} />
+          <Field key={item.k} item={item} def={def} lang={lang} dict={dict} answers={answers} set={set} problem={problemFor(item.k)} />
         ))}
         {pinRequired && !pin && step === 0 && (
           <div className={`q${pinError ? " q-bad" : ""}`} id="q-pin">
-            <p className="q-text">{u(lang, "pinTitle")}</p>
-            <p className="small muted">{u(lang, def.band === "A" ? "pinLeadA" : "pinLead")}</p>
+            <p className="q-text">{uu("pinTitle")}</p>
+            <p className="small muted">{uu(def.band === "A" ? "pinLeadA" : "pinLead")}</p>
             <div className="pin-row">
               <label>
-                <span className="small">{u(lang, "pinLabel")}</span>
-                <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} pattern="\d{4}" value={pinA} onChange={(e) => setPinA(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label={u(lang, "pinLabel")} />
+                <span className="small">{uu("pinLabel")}</span>
+                <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} pattern="\d{4}" value={pinA} onChange={(e) => setPinA(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label={uu("pinLabel")} />
               </label>
               <label>
-                <span className="small">{u(lang, "pinAgain")}</span>
-                <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} pattern="\d{4}" value={pinB} onChange={(e) => setPinB(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label={u(lang, "pinAgain")} />
+                <span className="small">{uu("pinAgain")}</span>
+                <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} pattern="\d{4}" value={pinB} onChange={(e) => setPinB(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label={uu("pinAgain")} />
               </label>
             </div>
             {pinError && <p className="q-error" role="alert">{pinError}</p>}
@@ -280,23 +300,23 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
       )}
       {problems.length > 0 && !error && (
         <p className="alert" role="alert">
-          {u(lang, "fixBelow")}
+          {uu("fixBelow")}
         </p>
       )}
 
       <div className="inst-nav">
         {step > minStep ? (
           <button type="button" className="btn btn-quiet" onClick={() => go(-1)} disabled={status === "sending"}>
-            {u(lang, "back")}
+            {uu("back")}
           </button>
         ) : (
           <span />
         )}
         <button type="button" className="btn" onClick={() => go(1)} disabled={status === "sending"} aria-busy={status === "sending"}>
-          {status === "sending" ? u(lang, "sending") : last ? u(lang, "submit") : u(lang, "next")}
+          {status === "sending" ? uu("sending") : last ? uu("submit") : uu("next")}
         </button>
       </div>
-      <p className="small muted inst-resume">{u(lang, "resumeNote")}</p>
+      <p className="small muted inst-resume">{uu("resumeNote")}</p>
     </div>
   );
 }
@@ -310,25 +330,27 @@ function Field({
   answers,
   set,
   problem,
+  dict,
 }: {
   item: Item;
   def: FormDef;
   lang: Lang;
+  dict?: Dict;
   answers: Answers;
   set: (k: string, v: Answer | undefined) => void;
   problem?: Problem;
 }) {
-  const L = (x: { en: string; hi: string }) => x[lang];
+  const { L, uu } = useText(lang, dict);
   const v = answers[item.k];
   const msg = problem && (
     <p className="q-error" role="alert">
       {problem.code === "floor"
-        ? u(lang, "floor", { n: problem.need ?? 0, m: textLength(String(v ?? "")) })
+        ? uu("floor", { n: problem.need ?? 0, m: textLength(String(v ?? "")) })
         : item.kind === "grid"
-          ? u(lang, "requiredGrid")
+          ? uu("requiredGrid")
           : problem.code === "invalid"
-            ? u(lang, "invalid")
-            : u(lang, "required")}
+            ? uu("invalid")
+            : uu("required")}
     </p>
   );
   const cls = `q${problem ? " q-bad" : ""}`;
@@ -339,7 +361,7 @@ function Field({
       <div className={cls} id={`q-${item.k}`}>
         <p className="q-text">{L(item.t)}</p>
         {subs.length === 0 ? (
-          <p className="small muted">{u(lang, "pickSubjectsFirst")}</p>
+          <p className="small muted">{uu("pickSubjectsFirst")}</p>
         ) : (
           <div className="grid-subjects">
             {subs.map((s) => {
@@ -349,8 +371,9 @@ function Field({
                   <p className="grid-name">{L(s.t)}</p>
                   {(["enjoy", "ease"] as const).map((axis) => (
                     <div key={axis} className="grid-axis">
-                      <span className="grid-label">{u(lang, axis)}</span>
+                      <span className="grid-label">{uu(axis)}</span>
                       <Pills
+                        dict={dict}
                         name={g[axis]}
                         opts={["1", "2", "3", "4", "5"].map((x) => ({ v: x, t: { en: x, hi: x } }))}
                         value={answers[g[axis]]}
@@ -402,7 +425,7 @@ function Field({
       <fieldset className={cls} id={`q-${item.k}`}>
         <legend className="q-text">{L(item.t)}</legend>
         {subs.length === 0 ? (
-          <p className="small muted">{u(lang, "pickSubjectsFirst")}</p>
+          <p className="small muted">{uu("pickSubjectsFirst")}</p>
         ) : (
           <div className="opt-list">
             {subs.map((s) => (
@@ -431,15 +454,15 @@ function Field({
         {item.help && <p className="small muted">{L(item.help)}</p>}
         {item.ex && (
           <details className="q-example">
-            <summary>{u(lang, "example")}</summary>
+            <summary>{uu("example")}</summary>
             <p>{L(item.ex)}</p>
           </details>
         )}
         {skipped ? (
           <p className="small">
-            {u(lang, "skipped")}{" "}
+            {uu("skipped")}{" "}
             <button type="button" className="linkbtn" onClick={() => set(item.k, undefined)}>
-              {u(lang, "unskip")}
+              {uu("unskip")}
             </button>
           </p>
         ) : (
@@ -447,11 +470,11 @@ function Field({
             <textarea id={`in-${item.k}`} rows={5} maxLength={4000} value={text} onChange={(e) => set(item.k, e.target.value)} />
             <div className="q-foot">
               <span className={`small ${n > 0 && m < n ? "muted" : "ok"}`}>
-                {n > 0 ? u(lang, "chars", { m, n }) : u(lang, "charsFree", { m })}
+                {n > 0 ? uu("chars", { m, n }) : uu("charsFree", { m })}
               </span>
               {item.skippable && (
                 <button type="button" className="linkbtn" onClick={() => set(item.k, SKIP)}>
-                  {u(lang, "skip")}
+                  {uu("skip")}
                 </button>
               )}
             </div>
@@ -494,6 +517,7 @@ function Field({
       <fieldset className={cls} id={`q-${item.k}`}>
         <legend className="q-text">{L(item.t)}</legend>
         <Pills
+          dict={dict}
           name={item.k}
           opts={opts}
           value={v}
@@ -532,7 +556,9 @@ function Pills({
   lang,
   anchors,
   size,
+  dict,
 }: {
+  dict?: Dict;
   name: string;
   opts: Opt[];
   value: Answer | undefined;
@@ -541,6 +567,7 @@ function Pills({
   anchors?: { lo: { en: string; hi: string }; hi: { en: string; hi: string } };
   size?: boolean;
 }) {
+  const { L } = useText(lang, dict);
   return (
     <div className="pills-wrap">
       <div className={`scale-opts${size ? " scale-a3" : ""}`} role="radiogroup">
@@ -549,15 +576,15 @@ function Pills({
             <input type="radio" name={name} value={o.v} checked={value === o.v} onChange={() => onChange(o.v)} />
             <span>
               {size && <i className={`dot dot-${i + 1}`} aria-hidden="true" />}
-              {o.t[lang]}
+              {L(o.t)}
             </span>
           </label>
         ))}
       </div>
       {anchors && (
         <div className="anchor-row small muted">
-          <span>1 = {anchors.lo[lang]}</span>
-          <span>5 = {anchors.hi[lang]}</span>
+          <span>1 = {L(anchors.lo)}</span>
+          <span>5 = {L(anchors.hi)}</span>
         </div>
       )}
     </div>
@@ -569,27 +596,30 @@ function Unlock({
   paused,
   onUnlock,
   onStartAgain,
+  dict,
 }: {
+  dict?: Dict;
   lang: Lang;
   paused?: boolean;
   onUnlock: (code: string) => Promise<string | null>;
   onStartAgain?: () => Promise<void>;
 }) {
+  const { uu } = useText(lang, dict);
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const submit = async () => {
-    if (!/^\d{4}$/.test(code)) return setMsg(u(lang, "pinInvalid"));
+    if (!/^\d{4}$/.test(code)) return setMsg(uu("pinInvalid"));
     setBusy(true);
-    const m = await onUnlock(code).catch(() => u(lang, "errNetwork"));
+    const m = await onUnlock(code).catch(() => uu("errNetwork"));
     setBusy(false);
     setCode("");
     setMsg(m);
   };
   return (
     <div className="panel panel-accent unlock">
-      <h2>{u(lang, paused ? "pausedTitle" : "unlockTitle")}</h2>
-      <p>{u(lang, paused ? "pausedLead" : "unlockLead")}</p>
+      <h2>{uu(paused ? "pausedTitle" : "unlockTitle")}</h2>
+      <p>{uu(paused ? "pausedLead" : "unlockLead")}</p>
       <div className="pin-row">
         <input
           type="password"
@@ -598,12 +628,12 @@ function Unlock({
           autoFocus
           maxLength={4}
           value={code}
-          aria-label={u(lang, "pinLabel")}
+          aria-label={uu("pinLabel")}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
         <button type="button" className="btn" onClick={submit} disabled={busy}>
-          {u(lang, "unlockBtn")}
+          {uu("unlockBtn")}
         </button>
       </div>
       {msg && (
@@ -617,10 +647,10 @@ function Unlock({
             type="button"
             className="linkbtn"
             onClick={async () => {
-              if (window.confirm(u(lang, "startAgainConfirm"))) await onStartAgain();
+              if (window.confirm(uu("startAgainConfirm"))) await onStartAgain();
             }}
           >
-            {u(lang, "startAgain")}
+            {uu("startAgain")}
           </button>
         </p>
       )}
