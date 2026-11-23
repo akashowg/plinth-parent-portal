@@ -1,14 +1,19 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { cookies } from "next/headers";
-import { requireEnv } from "./env";
+import { optionalEnv, requireEnv } from "./env";
 import { safeEqual } from "./crypto";
 
 const PARENT = "pp_parent";
 const ADMIN = "pp_admin";
 
+/** SESSION_SECRET if set; otherwise a signing key derived from DATA_ENCRYPTION_KEY (one fewer secret to manage). */
+function signingKey(): string {
+  return optionalEnv("SESSION_SECRET") ?? createHmac("sha256", requireEnv("DATA_ENCRYPTION_KEY")).update("plinth-session-v1").digest("base64url");
+}
+
 function sign(payload: string): string {
-  const mac = createHmac("sha256", requireEnv("SESSION_SECRET")).update(payload).digest("base64url");
+  const mac = createHmac("sha256", signingKey()).update(payload).digest("base64url");
   return `${payload}.${mac}`;
 }
 

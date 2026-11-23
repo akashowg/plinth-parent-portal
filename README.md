@@ -45,13 +45,13 @@ Any Postgres works (Neon via the Vercel Marketplace also does), but choose a reg
 
 ### 4. Environment variables
 
-Run `npm run gen:secrets` (or ask Claude) to generate the two random keys.
+The quickest database route is Vercel → Project → **Storage** → Create → Supabase (region Mumbai): Vercel connects it automatically.
 
 | Name | Value |
 | --- | --- |
-| `DATABASE_URL` | The Supabase transaction-pooler string from step 1 |
-| `DATA_ENCRYPTION_KEY` | 32-byte key from `gen:secrets`. **Also save it in your password manager: if it is lost, stored answers cannot be read.** |
-| `SESSION_SECRET` | Long random string from `gen:secrets` |
+| `DATABASE_URL` | *Not needed* if the database was added from Vercel → Storage (the portal reads the `POSTGRES_URL` Vercel adds). Otherwise the Supabase transaction-pooler string |
+| `DATA_ENCRYPTION_KEY` | 32-byte key: run `openssl rand -base64 32` in Terminal. **Also save it in your password manager: if it is lost, stored answers cannot be read.** |
+| `SESSION_SECRET` | *Optional.* If unset, a signing key is derived from `DATA_ENCRYPTION_KEY` |
 | `ADMIN_PASSWORD` | A long password only you know, for `/admin` |
 | `RESEND_API_KEY` | From step 2 |
 | `EMAIL_FROM` | e.g. `PLINTH <care@plinthnetwork.in>` (must be on the verified domain) |

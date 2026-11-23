@@ -1,14 +1,17 @@
 import "server-only";
 import postgres from "postgres";
-import { requireEnv } from "./env";
+import { databaseUrl } from "./env";
 
 type Sql = ReturnType<typeof postgres>;
 const g = globalThis as unknown as { __plinthSql?: Sql; __plinthSchema?: Promise<void> };
 
 function client(): Sql {
   if (!g.__plinthSql) {
-    const url = requireEnv("DATABASE_URL");
-    const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url) || url.includes("host=/");
+    // Drop provider-specific query options (e.g. Supabase's ?supa=…, ?sslmode=…); TLS is set explicitly below.
+    const u = new URL(databaseUrl());
+    u.search = "";
+    const url = u.toString();
+    const local = ["localhost", "127.0.0.1"].includes(u.hostname);
     g.__plinthSql = postgres(url, {
       ssl: local || process.env.DATABASE_SSL === "disable" ? false : "require",
       max: 3,

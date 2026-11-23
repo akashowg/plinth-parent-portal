@@ -14,11 +14,19 @@ export function optionalEnv(name: string): string | undefined {
   return v && v.trim() ? v.trim() : undefined;
 }
 
+/**
+ * Database connection string. DATABASE_URL wins; otherwise the variable a Vercel Marketplace
+ * database (Supabase, Neon) injects automatically, so nobody has to copy a database password.
+ */
+export function databaseUrl(): string {
+  const v = optionalEnv("DATABASE_URL") ?? optionalEnv("POSTGRES_URL");
+  if (!v) throw new Error("No database connected. Add one in Vercel → Project → Storage, or set DATABASE_URL.");
+  return v;
+}
+
 /** Settings the portal cannot run without. Shown on the admin page when any is missing. */
 export const REQUIRED_SETTINGS = [
-  "DATABASE_URL",
   "DATA_ENCRYPTION_KEY",
-  "SESSION_SECRET",
   "ADMIN_PASSWORD",
   "RESEND_API_KEY",
   "EMAIL_FROM",
@@ -27,7 +35,9 @@ export const REQUIRED_SETTINGS = [
 ] as const;
 
 export function missingSettings(): string[] {
-  return REQUIRED_SETTINGS.filter((n) => !optionalEnv(n));
+  const missing: string[] = REQUIRED_SETTINGS.filter((n) => !optionalEnv(n));
+  if (!optionalEnv("DATABASE_URL") && !optionalEnv("POSTGRES_URL")) missing.unshift("database (DATABASE_URL or a Vercel Storage database)");
+  return missing;
 }
 
 /** Development helper: show one-time codes on screen instead of emailing them. Never set in production. */
