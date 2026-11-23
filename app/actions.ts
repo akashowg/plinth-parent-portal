@@ -239,12 +239,56 @@ export async function adminActionSafeguard(fd: FormData) {
   const sgId = Number(s(fd, "sg", 20));
   const outcome = s(fd, "outcome", 30);
   const note = String(fd.get("note") ?? "").trim().slice(0, 2000);
-  if (!["actioned", "cleared"].includes(outcome) || note.length < 10) redirect(`/admin/case/${id}?sg=note`);
+  if (!["actioned", "cleared_context", "false_alarm"].includes(outcome) || note.length < 10) redirect(`/admin/case/${id}?sg=note`);
+  const status = outcome === "actioned" ? "actioned" : "cleared";
   const sql = await db();
-  await sql`update safeguards set status = ${outcome}, note_enc = ${seal({ note, by: "admin" })}, actioned_at = now()
+  await sql`update safeguards set status = ${status}, outcome = ${outcome}, note_enc = ${seal({ note, by: "admin" })}, actioned_at = now()
             where id = ${sgId} and case_id = ${id}`;
   await audit(id, "admin", `safeguard_${outcome}:${sgId}`);
   redirect(`/admin/case/${id}?updated=sg-${sgId}`);
+}
+
+/* ------------------------------------------------------------------ admin · safeguarding lexicon */
+const TERM_CATEGORIES = [
+  "self_harm", "sexual_abuse", "physical_abuse", "emotional_abuse", "neglect", "exploitation",
+  "bullying", "fear_of_home", "substance", "distress", "custom",
+];
+
+export async function adminAddTerm(fd: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const phrase = s(fd, "phrase", 120);
+  const category = s(fd, "category", 30);
+  const kind = s(fd, "kind", 10) === "except" ? "except" : "match";
+  const severity = kind === "except" ? "concern" : s(fd, "severity", 10) === "urgent" ? "urgent" : "concern";
+  const note = s(fd, "note", 300);
+  if (phrase.length < 3 || !TERM_CATEGORIES.includes(category)) redirect("/admin/safeguarding?term=invalid");
+  const sql = await db();
+  await sql`insert into sg_terms (phrase, category, severity, kind, note) values (${phrase}, ${category}, ${severity}, ${kind}, ${note || null})`;
+  await audit(null, "admin", `sg_term_added:${kind}`);
+  redirect("/admin/safeguarding?term=added");
+}
+
+export async function adminToggleTerm(fd: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = Number(s(fd, "id", 20));
+  const sql = await db();
+  await sql`update sg_terms set active = not active where id = ${id}`;
+  await audit(null, "admin", `sg_term_toggled:${id}`);
+  redirect("/admin/safeguarding?term=updated");
+}
+
+export async function adminTestLexicon(_: FormState, fd: FormData): Promise<FormState> {
+  if (!(await isAdmin())) return { error: "Sign in again." };
+  const text = String(fd.get("text") ?? "").slice(0, 2000);
+  const { scanText, CATEGORY_LABEL } = await import("@/lib/instrument/lexicon");
+  const { customTerms } = await import("@/lib/instrument/store");
+  const hits = scanText(text, await customTerms());
+  if (!hits.length) return { message: "No match. This text would go to the engine." };
+  return {
+    message: hits
+      .map((h) => `${h.severity.toUpperCase()} · ${CATEGORY_LABEL[h.category]} · “${h.phrase}”${h.tags.length ? ` · ${h.tags.join(", ")}` : ""}`)
+      .join("\n"),
+  };
 }
 
 export async function adminSignOff(fd: FormData) {

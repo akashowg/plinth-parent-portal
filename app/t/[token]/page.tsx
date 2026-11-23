@@ -41,7 +41,7 @@ export default async function TeacherForm({ params }: { params: Promise<{ token:
         def={def}
         lang={lang}
         token={token}
-        initial={draft}
+        initial={draft && "answers" in draft ? draft : null}
         preface={
           <div className="preface">
             <p>{t(lang, "teacherNotice")}</p>

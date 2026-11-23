@@ -1,31 +1,45 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { saveDraft, submitInstrument } from "@/app/instrument-actions";
+import { discardDraft, saveDraft, submitInstrument, unlockDraft } from "@/app/instrument-actions";
 import { ANCHORS } from "@/lib/instrument/scales";
 import type { Answer, Answers, FormDef, Item, Lang, Opt } from "@/lib/instrument/types";
 import { u } from "@/lib/instrument/ui";
 import { chosenSubjects, gridKeys, isVisible, SKIP, textLength, validateSection, type Problem } from "@/lib/instrument/validate";
 
+type DraftData = { answers: Answers; timings: Record<string, number>; step: number };
 type Props = {
   def: FormDef;
   lang: Lang;
   token?: string;
-  initial?: { answers: Answers; timings: Record<string, number>; step: number } | null;
+  initial?: DraftData | { locked: true; step: number } | null;
+  /** Child forms: drafts are sealed with a 4-digit code the child chooses, and the page locks when left idle. */
+  pinRequired?: boolean;
   /** Shown above the first section (assent, notice, administrator guidance). */
   preface?: ReactNode;
   done: ReactNode;
 };
 
 const PILL_KINDS = new Set(["freq", "obs", "a3", "rate"]);
+const WEAK_PINS = new Set(["1234", "4321", "0123", "1212", "2580", "1122", "1004", "2000", "2025", "2026"]);
+const IDLE_MS = 2 * 60 * 1000;
+const HIDDEN_MS = 30 * 1000;
 
-export default function InstrumentForm({ def, lang, token, initial, preface, done }: Props) {
-  const [answers, setAnswers] = useState<Answers>(initial?.answers ?? {});
-  const [step, setStep] = useState(() => Math.min(initial?.step ?? 0, def.sections.length - 1));
+export default function InstrumentForm({ def, lang, token, initial, preface, done, pinRequired }: Props) {
+  const startLocked = !!initial && "locked" in initial;
+  const draft = !startLocked ? (initial as DraftData | null | undefined) : null;
+  const [answers, setAnswers] = useState<Answers>(draft?.answers ?? {});
+  const [step, setStep] = useState(() => Math.min(draft?.step ?? 0, def.sections.length - 1));
+  const [gate, setGate] = useState<"unlock" | null>(startLocked ? "unlock" : null);
+  const [pin, setPin] = useState<string | null>(null);
+  const [pinA, setPinA] = useState("");
+  const [pinB, setPinB] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [paused, setPaused] = useState(false);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
-  const timings = useRef<Record<string, number>>({ ...(initial?.timings ?? {}) });
+  const timings = useRef<Record<string, number>>({ ...(draft?.timings ?? {}) });
   const shownAt = useRef<number>(Date.now());
   const top = useRef<HTMLDivElement>(null);
   const dirty = useRef(false);
@@ -50,17 +64,19 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
   }, [def.sections, step]);
 
   const persist = useCallback(
-    async (nextStep: number, a: Answers) => {
+    async (nextStep: number, a: Answers, pinNow?: string | null) => {
+      const code = pinNow ?? pin;
+      if (pinRequired && !code) return; // a child's answers are never stored without the child's code
       setStatus("saving");
       try {
-        await saveDraft({ source: def.source, token, answers: a, timings: timings.current, step: nextStep });
+        await saveDraft({ source: def.source, token, answers: a, timings: timings.current, step: nextStep, pin: code ?? undefined });
         setStatus("saved");
         dirty.current = false;
       } catch {
         setStatus("idle");
       }
     },
-    [def.source, token],
+    [def.source, token, pin, pinRequired],
   );
 
   // Gentle autosave a few seconds after the last change.
@@ -78,6 +94,31 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
     top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [step]);
 
+  // Idle lock: a child's form hides itself after two minutes untouched, or thirty seconds in the background.
+  useEffect(() => {
+    if (!pinRequired || !pin || paused || gate) return;
+    let last = Date.now();
+    let hiddenAt = 0;
+    const touch = () => (last = Date.now());
+    const lock = () => {
+      bank();
+      setPaused(true);
+    };
+    const onVis = () => {
+      if (document.hidden) hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > HIDDEN_MS) lock();
+    };
+    const evs = ["pointerdown", "keydown", "scroll", "touchstart", "input"] as const;
+    evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    document.addEventListener("visibilitychange", onVis);
+    const t = setInterval(() => Date.now() - last > IDLE_MS && lock(), 10000);
+    return () => {
+      evs.forEach((e) => window.removeEventListener(e, touch));
+      document.removeEventListener("visibilitychange", onVis);
+      clearInterval(t);
+    };
+  }, [pinRequired, pin, paused, gate, bank]);
+
   const set = (k: string, v: Answer | undefined) => {
     dirty.current = true;
     setAnswers((prev) => {
@@ -91,6 +132,7 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
 
   const go = async (dir: 1 | -1) => {
     setError(null);
+    let newPin: string | null = null;
     if (dir === 1) {
       const p = validateSection(def, section, answers);
       if (p.length) {
@@ -98,13 +140,26 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
         setTimeout(() => document.getElementById(`q-${p[0].k}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 30);
         return;
       }
+      if (pinRequired && !pin) {
+        const bad = !/^\d{4}$/.test(pinA) ? "pinInvalid" : pinA !== pinB ? "pinMismatch" : /^(\d)\1{3}$/.test(pinA) || WEAK_PINS.has(pinA) ? "pinSimple" : null;
+        if (bad) {
+          setPinError(u(lang, bad));
+          setTimeout(() => document.getElementById("q-pin")?.scrollIntoView({ behavior: "smooth", block: "center" }), 30);
+          return;
+        }
+        newPin = pinA;
+        setPin(pinA);
+        setPinA("");
+        setPinB("");
+        setPinError(null);
+      }
     }
     bank();
     setProblems([]);
     const next = Math.max(minStep, Math.min(def.sections.length - 1, step + dir));
     if (dir === 1 && step === def.sections.length - 1) return submit();
     setStep(next);
-    void persist(next, answers);
+    void persist(next, answers, newPin);
   };
 
   const submit = async () => {
@@ -138,6 +193,45 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
 
   if (status === "done") return <>{done}</>;
 
+  if (gate === "unlock" && token)
+    return (
+      <Unlock
+        lang={lang}
+        onUnlock={async (code) => {
+          const r = await unlockDraft({ token, pin: code });
+          if (r.ok) {
+            setAnswers(r.answers);
+            timings.current = { ...r.timings };
+            setStep(Math.min(r.step, def.sections.length - 1));
+            setPin(code);
+            setGate(null);
+            return null;
+          }
+          if (r.error === "wrong") return u(lang, "wrongPin", { left: r.left });
+          setGate(null); // reset or nothing left: start fresh
+          return r.error === "reset" ? u(lang, "resetDone") : null;
+        }}
+        onStartAgain={async () => {
+          await discardDraft({ token });
+          setGate(null);
+        }}
+      />
+    );
+
+  if (paused && pin)
+    return (
+      <Unlock
+        lang={lang}
+        paused
+        onUnlock={async (code) => {
+          if (code !== pin) return u(lang, "wrongLocal");
+          shownAt.current = Date.now();
+          setPaused(false);
+          return null;
+        }}
+      />
+    );
+
   const problemFor = (k: string) => problems.find((p) => p.k === k || (k === "S1.grid" && p.k.startsWith("S1.")));
   const visible = section.items.filter((i) => isVisible(i, answers));
   const last = step === def.sections.length - 1;
@@ -160,6 +254,23 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
         {visible.map((item) => (
           <Field key={item.k} item={item} def={def} lang={lang} answers={answers} set={set} problem={problemFor(item.k)} />
         ))}
+        {pinRequired && !pin && step === 0 && (
+          <div className={`q${pinError ? " q-bad" : ""}`} id="q-pin">
+            <p className="q-text">{u(lang, "pinTitle")}</p>
+            <p className="small muted">{u(lang, def.band === "A" ? "pinLeadA" : "pinLead")}</p>
+            <div className="pin-row">
+              <label>
+                <span className="small">{u(lang, "pinLabel")}</span>
+                <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} pattern="\d{4}" value={pinA} onChange={(e) => setPinA(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label={u(lang, "pinLabel")} />
+              </label>
+              <label>
+                <span className="small">{u(lang, "pinAgain")}</span>
+                <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} pattern="\d{4}" value={pinB} onChange={(e) => setPinB(e.target.value.replace(/\D/g, "").slice(0, 4))} aria-label={u(lang, "pinAgain")} />
+              </label>
+            </div>
+            {pinError && <p className="q-error" role="alert">{pinError}</p>}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -448,6 +559,70 @@ function Pills({
           <span>1 = {anchors.lo[lang]}</span>
           <span>5 = {anchors.hi[lang]}</span>
         </div>
+      )}
+    </div>
+  );
+}
+
+function Unlock({
+  lang,
+  paused,
+  onUnlock,
+  onStartAgain,
+}: {
+  lang: Lang;
+  paused?: boolean;
+  onUnlock: (code: string) => Promise<string | null>;
+  onStartAgain?: () => Promise<void>;
+}) {
+  const [code, setCode] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (!/^\d{4}$/.test(code)) return setMsg(u(lang, "pinInvalid"));
+    setBusy(true);
+    const m = await onUnlock(code).catch(() => u(lang, "errNetwork"));
+    setBusy(false);
+    setCode("");
+    setMsg(m);
+  };
+  return (
+    <div className="panel panel-accent unlock">
+      <h2>{u(lang, paused ? "pausedTitle" : "unlockTitle")}</h2>
+      <p>{u(lang, paused ? "pausedLead" : "unlockLead")}</p>
+      <div className="pin-row">
+        <input
+          type="password"
+          inputMode="numeric"
+          autoComplete="off"
+          autoFocus
+          maxLength={4}
+          value={code}
+          aria-label={u(lang, "pinLabel")}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+        />
+        <button type="button" className="btn" onClick={submit} disabled={busy}>
+          {u(lang, "unlockBtn")}
+        </button>
+      </div>
+      {msg && (
+        <p className="q-error" role="alert">
+          {msg}
+        </p>
+      )}
+      {onStartAgain && (
+        <p className="small" style={{ marginTop: 16 }}>
+          <button
+            type="button"
+            className="linkbtn"
+            onClick={async () => {
+              if (window.confirm(u(lang, "startAgainConfirm"))) await onStartAgain();
+            }}
+          >
+            {u(lang, "startAgain")}
+          </button>
+        </p>
       )}
     </div>
   );

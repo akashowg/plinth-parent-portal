@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { audit, db } from "@/lib/db";
-import { lookupHash, seal } from "@/lib/crypto";
+import { lookupHash, openWith, pinKey, seal, sealWith } from "@/lib/crypto";
 import { deviceHash } from "@/lib/instrument/device";
 import { baseUrl } from "@/lib/env";
 import { notifyAdmin, notifySafeguarding } from "@/lib/email";
@@ -10,6 +10,8 @@ import { caseByToken, getCase, submittedSources, type CaseRow } from "@/lib/case
 import { parentCaseId } from "@/lib/session";
 import { allItems, chosenSubjects, gridKeys, isVisible, validateSection, type Problem } from "@/lib/instrument/forms";
 import { safeguardingHits, SG_MEANING } from "@/lib/instrument/safeguarding";
+import { customTerms } from "@/lib/instrument/store";
+import { CATEGORY_LABEL } from "@/lib/instrument/lexicon";
 import { caseContext, DB_SOURCE, formFor, type StoredPayload } from "@/lib/instrument/store";
 import type { Answers, FormDef, Source } from "@/lib/instrument/types";
 
@@ -63,17 +65,73 @@ function sanitiseTimings(def: FormDef, raw: unknown): Record<string, number> {
   return t;
 }
 
-export async function saveDraft(input: { source: Source; token?: string; answers: unknown; timings: unknown; step: number }): Promise<{ ok: boolean }> {
+const PIN = /^\d{4}$/;
+const MAX_ATTEMPTS = 5;
+
+export async function saveDraft(input: {
+  source: Source;
+  token?: string;
+  answers: unknown;
+  timings: unknown;
+  step: number;
+  pin?: string;
+}): Promise<{ ok: boolean }> {
   const acc = await access(input.source, input.token);
   if ("error" in acc) return { ok: false };
   const def = formFor(acc.c, input.source);
   if (!def) return { ok: false };
+  const childForm = input.source === "student";
+  // A child's draft is only ever stored sealed with the child's own code.
+  if (childForm && !PIN.test(String(input.pin ?? ""))) return { ok: false };
   const h = await deviceHash(true);
-  const data = { answers: sanitise(def, input.answers), timings: sanitiseTimings(def, input.timings), step: Math.max(0, Math.min(Number(input.step) || 0, 40)) };
+  const step = Math.max(0, Math.min(Number(input.step) || 0, 40));
+  const data = { answers: sanitise(def, input.answers), timings: sanitiseTimings(def, input.timings), step };
+  const enc = childForm ? sealWith(pinKey(acc.c.id, String(input.pin)), data) : seal(data);
   const sql = await db();
   await sql`
-    insert into drafts (case_id, source, device_hash, data_enc) values (${acc.c.id}, ${input.source}, ${h}, ${seal(data)})
-    on conflict (case_id, source) do update set device_hash = excluded.device_hash, data_enc = excluded.data_enc, updated_at = now()`;
+    insert into drafts (case_id, source, device_hash, data_enc, pin_locked, attempts, step)
+    values (${acc.c.id}, ${input.source}, ${h}, ${enc}, ${childForm}, 0, ${step})
+    on conflict (case_id, source) do update set device_hash = excluded.device_hash, data_enc = excluded.data_enc,
+      pin_locked = excluded.pin_locked, attempts = 0, step = excluded.step, updated_at = now()`;
+  return { ok: true };
+}
+
+export type UnlockResult =
+  | { ok: true; answers: Answers; timings: Record<string, number>; step: number }
+  | { ok: false; error: "wrong"; left: number }
+  | { ok: false; error: "reset" | "none" | "link" };
+
+/** Releases a child's saved draft to whoever enters the child's code. Five wrong codes delete the draft. */
+export async function unlockDraft(input: { token: string; pin: string }): Promise<UnlockResult> {
+  const acc = await access("student", input.token);
+  if ("error" in acc) return { ok: false, error: "link" };
+  const sql = await db();
+  const rows = await sql<{ data_enc: string; attempts: number }[]>`
+    select data_enc, attempts from drafts where case_id = ${acc.c.id} and source = 'student' and pin_locked`;
+  if (!rows[0]) return { ok: false, error: "none" };
+  const pin = String(input.pin ?? "");
+  const data = PIN.test(pin) ? openWith<{ answers: Answers; timings: Record<string, number>; step: number }>(pinKey(acc.c.id, pin), rows[0].data_enc) : null;
+  if (data) {
+    await sql`update drafts set attempts = 0 where case_id = ${acc.c.id} and source = 'student'`;
+    return { ok: true, ...data };
+  }
+  const attempts = rows[0].attempts + 1;
+  if (attempts >= MAX_ATTEMPTS) {
+    await sql`delete from drafts where case_id = ${acc.c.id} and source = 'student'`;
+    await audit(acc.c.id, "system", "student_draft_reset_after_wrong_codes");
+    return { ok: false, error: "reset" };
+  }
+  await sql`update drafts set attempts = ${attempts} where case_id = ${acc.c.id} and source = 'student'`;
+  return { ok: false, error: "wrong", left: MAX_ATTEMPTS - attempts };
+}
+
+/** Throws away a child's saved draft (the "start again" option). Reveals nothing. */
+export async function discardDraft(input: { token: string }): Promise<{ ok: boolean }> {
+  const acc = await access("student", input.token);
+  if ("error" in acc) return { ok: false };
+  const sql = await db();
+  await sql`delete from drafts where case_id = ${acc.c.id} and source = 'student'`;
+  await audit(acc.c.id, "student", "student_draft_discarded");
   return { ok: true };
 }
 
@@ -101,7 +159,7 @@ export async function submitInstrument(input: { source: Source; token?: string; 
     for (const k of Object.keys(answers)) if (k.startsWith("S1.enjoy.") || k.startsWith("S1.ease.")) if (!keep.has(k)) delete answers[k];
   }
 
-  const sg = safeguardingHits(def, answers);
+  const sg = safeguardingHits(def, answers, await customTerms());
   const payload: StoredPayload = { v: 2, band: ctx.band, answers, timings, sg };
   const sql = await db();
   const h = await headers();
@@ -126,7 +184,8 @@ export async function submitInstrument(input: { source: Source; token?: string; 
       values (${c.id}, ${DB_SOURCE[source]}, ${def.version}, ${seal(payload)})
       on conflict (case_id, source) do nothing`;
     for (const hit of sg) {
-      await tx`insert into safeguards (case_id, code, source, item) values (${c.id}, ${hit.code}, ${hit.source}, ${hit.item})`;
+      await tx`insert into safeguards (case_id, code, source, item, detail_enc)
+               values (${c.id}, ${hit.code}, ${hit.source}, ${hit.item}, ${hit.detail ? seal(hit.detail) : null})`;
     }
     await tx`delete from drafts where case_id = ${c.id} and source = ${source}`;
     await tx`update cases set instrument = ${def.version} where id = ${c.id}`;
@@ -139,7 +198,11 @@ export async function submitInstrument(input: { source: Source; token?: string; 
   if (sg.length) {
     await audit(c.id, "system", `safeguarding:${[...new Set(sg.map((x) => x.code))].join(",")}`);
     const codes = [...new Set(sg.map((x) => x.code))];
-    await notifySafeguarding(c.ref, codes.map((code) => `${code} (${source}): ${SG_MEANING[code]}`), `${baseUrl()}/admin/case/${c.id}`);
+    const cats = [...new Set(sg.flatMap((x) => (x.detail ?? []).map((d) => CATEGORY_LABEL[d.category])))];
+    const lines = codes.map((code) => `${code} (${source}): ${SG_MEANING[code]}`);
+    if (cats.length) lines.push(`Kinds of concern detected in written answers: ${cats.join("; ")}.`);
+    const urgent = codes.some((x) => x === "SG-4U");
+    await notifySafeguarding(c.ref, lines, `${baseUrl()}/admin/case/${c.id}`, urgent);
   }
   await notifyAdmin(
     `PLINTH portal: ${source} form received for ${c.ref}`,

@@ -29,7 +29,7 @@ export default async function ParentForm() {
       <InstrumentForm
         def={def}
         lang={lang}
-        initial={draft}
+        initial={draft && "answers" in draft ? draft : null}
         preface={
           <div className="preface">
             <p>{t(lang, "parentPreface")}</p>

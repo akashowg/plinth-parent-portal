@@ -17,13 +17,13 @@ The portal collects the three HDI sources using **Instrument v2.0** (from *HDI I
 | Teacher | `/t/<link>` | Identity, tenure and class size, 20 observed-behaviour items (29 in Band A), trajectory, and a required "moment that surprised you" |
 | Akash | `/admin` | Queue with band and open-safeguarding badges; per case: safeguarding panel, validity flags, **signal ledger**, derived signals, reviewer sign-off, Studio export, reopen a form, erase |
 
-Answers save on the device as respondents go (only that device can resume a draft).
+Answers save as respondents go. Parent and teacher drafts resume only on the device that saved them. A **child's draft is sealed with a 4-digit code the child chooses**: reopening the link — on the parent's phone or anywhere — shows only an unlock screen, five wrong codes delete the draft, and the page locks itself after two minutes idle or thirty seconds in the background.
 
 **Signal ledger.** Each of 28 constructs gets a 1–5 value per source (a source needs ≥ 2 answered items), a verdict (convergent ≤ 1.0 apart, divergent ≥ 1.5, partial between), a confidence tier, and engine permissions. Divergent sources are never averaged; they produce a contradiction token. Validity flags can only lower confidence.
 
 **Validity checks.** Attention checks, consistency pairs, implausible-virtue items, straightlining (invalidates the section), section timing, reverse-coding, parent visibility weighting, teacher tenure/class-size weighting, cross-source divergence, plus "someone was watching" for the child form.
 
-**Safeguarding (flag, do not screen).** SG-1 child rarely feels okay · SG-2 no adult at school to go to · SG-3 sleep under 5 h or a marked mood/energy change · SG-4 written words matching the risk lexicon · RV a reviewer-only note. Each trigger emails the named contact (`SAFEGUARDING_EMAIL`, else `ADMIN_EMAIL`, else `CONTACT_EMAIL`) with codes only, and **locks the Studio export** until it is actioned with a note. Matched text never enters the export.
+**Safeguarding (flag, do not screen).** SG-1 child rarely feels okay · SG-2 no adult at school to go to · SG-3 sleep under 5 h or a marked mood/energy change · **SG-4U** written words suggesting possible current harm (self-harm, abuse, neglect, exploitation, forced marriage) — same-day, URGENT email with 112 / 1098 / Tele-MANAS 14416 guidance · SG-4 distress, bullying, fear of home, substances · RV a reviewer-only note. The lexicon (`lib/instrument/lexicon.ts`, tested by `npx tsx tests/lexicon.test.ts`) covers English, Hindi and Hinglish across ten categories, shows context (negation, someone else, a story, the past) without ever silencing a match, and can be extended without a deploy at **/admin/safeguarding**, which also counts real alerts versus false alarms per category. Each trigger emails the named contact (`SAFEGUARDING_EMAIL`, else `ADMIN_EMAIL`, else `CONTACT_EMAIL`) with codes only, and **locks the Studio export** until it is actioned with a note. Matched text never enters the export.
 
 **Source integrity.** If the teacher's text repeats the parent's (word-phrase overlap ≥ 25% warns, ≥ 60% flags as duplicate), the admin page and the exported intake both say so, matching the Studio rule.
 
@@ -94,6 +94,10 @@ Open `/admin`, sign in, and confirm there is no "Settings not configured" warnin
 6. After review, send the dossier to the parent and set the case to **Delivered**.
 7. If a parent withdraws, the portal deletes their answers automatically and emails `ADMIN_EMAIL`. Delete the matching Studio copy too.
 
+## PLINTH Studio
+
+Studio (on the Mac) recognises a v2.0 export automatically (`plinth/ledger.py`, wired in by `tools/apply_ledger_v2.py`). It puts the ledger rules into every prompt, caps each dimension's confidence at what the ledger supports, adds every contradiction to the fact sheet, and checks the written dossier sentence by sentence: definite statements about suggest-only constructs, missing contradictions, Holland codes, safeguarding content, “validated assessment” claims and comprehension claims that ignore a language mismatch go into the correction rounds and, if still open, to your review list. Test: `python3 tests/test_ledger_v2.py` in the Studio folder.
+
 ## Changing the questions
 
 The item bank lives in `lib/instrument/`: `student.ts`, `parent.ts`, `teacher.ts` (English and Hindi side by side), `constructs.ts` (which items feed which construct, and the HDI-7 / PIC-5 mapping), `scoring.ts` (validity and ledger), `derived.ts`, `safeguarding.ts`. Item keys are permanent: never reuse a key for a different question — retire it and add a new one, then change `INSTRUMENT_VERSION` in `forms.ts`. Interface text lives in `lib/i18n.ts` and `lib/instrument/ui.ts`.
@@ -102,7 +106,7 @@ The item bank lives in `lib/instrument/`: `student.ts`, `parent.ts`, `teacher.ts
 
 - **Pilot first.** v2.0 is a pre-pilot instrument. Run stage V0 (think-aloud with 12 children, 4 per band) before wider use, and describe it as a structured developmental inventory, not a validated assessment, until V3.
 - **Hindi text** should be read by a native speaker, especially the child forms.
-- **Safeguarding lexicon** (`lib/instrument/safeguarding.ts`) is a starter list; review it with a safeguarding professional. Decide who is the named contact for school-referred families.
+- **Safeguarding lexicon v2** passes its corpus (56/56 risk phrasings, 0/22 benign false alarms) but that corpus was written in-house. Before scale, have a child-protection professional review the categories and urgency rules, and add regional-language phrases (Chhattisgarhi, Halbi, Gondi) at /admin/safeguarding from real cases. Decide the named contact for school-referred families.
 - **Legal review.** The consent points, privacy notice (`app/privacy/page.tsx`), the safeguarding promise, the 30-day erasure promise and the email-code method of verifying a parent need a lawyer's check against the DPDP Rules before children's data obligations apply (14 May 2027).
 - **Back-ups.** Turn on Supabase backups (point-in-time recovery on a paid plan) and keep the encryption key safe.
 

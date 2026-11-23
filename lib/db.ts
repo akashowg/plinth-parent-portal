@@ -86,6 +86,9 @@ create table if not exists drafts (
   updated_at timestamptz not null default now(),
   primary key (case_id, source)
 );
+alter table drafts add column if not exists pin_locked boolean not null default false;
+alter table drafts add column if not exists attempts int not null default 0;
+alter table drafts add column if not exists step int not null default 0;
 
 create table if not exists safeguards (
   id bigserial primary key,
@@ -99,6 +102,19 @@ create table if not exists safeguards (
   actioned_at timestamptz
 );
 create index if not exists safeguards_case on safeguards(case_id);
+alter table safeguards add column if not exists detail_enc text;
+alter table safeguards add column if not exists outcome text;
+
+create table if not exists sg_terms (
+  id bigserial primary key,
+  phrase text not null,
+  category text not null,
+  severity text not null check (severity in ('urgent','concern')),
+  kind text not null default 'match' check (kind in ('match','except')),
+  active boolean not null default true,
+  note text,
+  created_at timestamptz not null default now()
+);
 
 create table if not exists reviews (
   id bigserial primary key,

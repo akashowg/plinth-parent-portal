@@ -68,6 +68,7 @@ export default async function StudentForm({ params }: { params: Promise<{ token:
         lang={lang}
         token={token}
         initial={draft}
+        pinRequired
         preface={preface}
         done={
           <div className="panel panel-accent">

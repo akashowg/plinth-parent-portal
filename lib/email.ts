@@ -77,7 +77,7 @@ export async function notifyAdmin(subject: string, text: string) {
  * Safeguarding alert to the named contact (SAFEGUARDING_EMAIL, else ADMIN_EMAIL, else CONTACT_EMAIL).
  * Carries the case reference and trigger codes only — never the child's words.
  */
-export async function notifySafeguarding(ref: string, lines: string[], adminUrl: string) {
+export async function notifySafeguarding(ref: string, lines: string[], adminUrl: string, urgent = false) {
   const to = optionalEnv("SAFEGUARDING_EMAIL") ?? optionalEnv("ADMIN_EMAIL") ?? optionalEnv("CONTACT_EMAIL");
   if (!to) {
     console.error(`SAFEGUARDING ALERT for ${ref} could not be emailed: no SAFEGUARDING_EMAIL, ADMIN_EMAIL or CONTACT_EMAIL set.`);
@@ -90,11 +90,23 @@ export async function notifySafeguarding(ref: string, lines: string[], adminUrl:
     "",
     `Open the case (sign in first): ${adminUrl}`,
     "",
+    ...(urgent
+      ? [
+          "URGENT: read the answer today. If a child may be in immediate danger, call 112.",
+          "Child Helpline 1098 (24×7, now routed with ERSS-112) handles abuse, neglect, child labour and child marriage.",
+          "Tele-MANAS 14416 or 1-800-891-4416 (24×7, free) gives mental-health support, including to the child and family.",
+          "Speak to the child or family only in a way that keeps the child safe — never confront an adult the child has named as harming them.",
+          "",
+        ]
+      : []),
     "Record what you did on the case page. The Studio export stays locked until every trigger is actioned.",
     "This email deliberately contains no answers.",
   ].join("\n");
   try {
-    return await sendMail({ to, subject: `PLINTH HDI safeguarding: case ${ref} needs review within 48 hours`, text });
+    const subject = urgent
+      ? `URGENT — PLINTH HDI safeguarding: case ${ref} needs a person today`
+      : `PLINTH HDI safeguarding: case ${ref} needs review within 48 hours`;
+    return await sendMail({ to, subject, text });
   } catch (e) {
     console.error("Safeguarding notification failed", e);
     return { ok: false };

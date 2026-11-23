@@ -235,3 +235,10 @@ details.danger .form { margin-top: 16px; }
   .scale-opts { gap: 6px; }
   .pill span { padding: 8px 11px; }
 }
+.admin .notice { white-space: pre-line; }
+
+.pin-row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.pin-row label { display: grid; gap: 4px; }
+.pin-row input { width: 7.5em; font: inherit; font-size: 22px; letter-spacing: .4em; text-align: center; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--paper); }
+.pin-row input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.unlock { max-width: 520px; }

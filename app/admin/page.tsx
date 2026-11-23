@@ -37,11 +37,12 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const { erased, show } = await searchParams;
   const sql = await db();
   const rows = await sql<
-    { id: string; ref: string; created_at: Date; status: string; child_enc: string; withdrawn_at: Date | null; band: string | null; srcs: string[] | null; sg_open: number }[]
+    { id: string; ref: string; created_at: Date; status: string; child_enc: string; withdrawn_at: Date | null; band: string | null; srcs: string[] | null; sg_open: number; sg_urgent: number }[]
   >`
     select c.id, c.ref, c.created_at, c.status, c.child_enc, c.withdrawn_at, c.band,
            array_remove(array_agg(distinct s.source), null) as srcs,
-           (select count(*)::int from safeguards g where g.case_id = c.id and g.status = 'open') as sg_open
+           (select count(*)::int from safeguards g where g.case_id = c.id and g.status = 'open') as sg_open,
+           (select count(*)::int from safeguards g where g.case_id = c.id and g.status = 'open' and g.code = 'SG-4U') as sg_urgent
     from cases c left join submissions s on s.case_id = c.id
     where ${show === "all" ? sql`true` : sql`c.status <> 'awaiting_verification'`}
     group by c.id order by c.created_at desc limit 500`;
@@ -63,7 +64,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       {erased && <p className="notice">Case erased.</p>}
       <p className="muted">
         {rows.length} profile(s).{" "}
-        {show === "all" ? <a href="/admin">Hide unverified</a> : <a href="/admin?show=all">Include unverified sign-ups</a>}
+        {show === "all" ? <a href="/admin">Hide unverified</a> : <a href="/admin?show=all">Include unverified sign-ups</a>} ·{" "}
+        <a href="/admin/safeguarding">Safeguarding lexicon</a>
       </p>
       <table>
         <thead>
@@ -97,6 +99,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 </td>
                 <td>
                   {STATUS_LABEL[r.status] ?? r.status}
+                  {r.sg_urgent > 0 && <span className="badge badge-risk" style={{ marginLeft: 6 }}>URGENT</span>}
                   {r.sg_open > 0 && <span className="badge badge-risk" style={{ marginLeft: 6 }}>safeguarding {r.sg_open}</span>}
                 </td>
               </tr>

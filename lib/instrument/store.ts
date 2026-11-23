@@ -8,6 +8,7 @@ import { buildLedger, validity, type LedgerEntry, type Submitted, type Validity 
 import { deriveSignals, interestTexture, type Derived, type InterestTexture } from "./derived";
 import { safeguardingHits, type SgHit } from "./safeguarding";
 import type { Answers, Band, FormDef, Source } from "./types";
+import type { CustomTerm } from "./lexicon";
 
 /** Database keeps the original source names; "educator" is the teacher form. */
 export const DB_SOURCE: Record<Source, "student" | "parent" | "educator"> = { student: "student", parent: "parent", teacher: "educator" };
@@ -88,7 +89,23 @@ export async function analyse(c: CaseRow): Promise<Analysis | null> {
   };
 }
 
-export type SafeguardRow = { id: number; code: string; source: string; item: string; created_at: Date; status: string; note_enc: string | null; actioned_at: Date | null };
+export type SafeguardRow = {
+  id: number; code: string; source: string; item: string; created_at: Date; status: string;
+  note_enc: string | null; actioned_at: Date | null; detail_enc: string | null; outcome: string | null;
+};
+
+export type TermRow = { id: number; phrase: string; category: string; severity: "urgent" | "concern"; kind: "match" | "except"; active: boolean; note: string | null; created_at: Date };
+
+/** Reviewer-added lexicon phrases and concern-level exceptions. Never fails a submission if the table is unreachable. */
+export async function customTerms(): Promise<CustomTerm[]> {
+  try {
+    const sql = await db();
+    const rows = await sql<TermRow[]>`select * from sg_terms where active order by id`;
+    return rows.map((r) => ({ phrase: r.phrase, category: r.category as CustomTerm["category"], severity: r.severity, kind: r.kind }));
+  } catch {
+    return [];
+  }
+}
 
 export async function safeguardRows(caseId: string): Promise<SafeguardRow[]> {
   const sql = await db();

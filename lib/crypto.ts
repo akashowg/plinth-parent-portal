@@ -56,3 +56,31 @@ export function safeEqual(a: string, b: string): boolean {
   if (ab.length !== bb.length) return false;
   return timingSafeEqual(ab, bb);
 }
+
+/**
+ * A key derived from the master key, the case and a 4-digit code the child chose. Used only for the child's draft,
+ * so a draft saved on a shared phone cannot be read back by anyone who does not know the child's code.
+ */
+export function pinKey(caseId: string, pin: string): Buffer {
+  return createHmac("sha256", dataKey()).update(`draft-pin:v1:${caseId}:${pin}`).digest();
+}
+
+export function sealWith(key: Buffer, value: unknown): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const ct = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
+  return ["p1", iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), ct.toString("base64url")].join(".");
+}
+
+/** Returns null when the key is wrong (authentication fails) instead of throwing. */
+export function openWith<T = unknown>(key: Buffer, sealed: string): T | null {
+  try {
+    const [v, ivB, tagB, ctB] = sealed.split(".");
+    if (v !== "p1") return null;
+    const d = createDecipheriv("aes-256-gcm", key, Buffer.from(ivB, "base64url"));
+    d.setAuthTag(Buffer.from(tagB, "base64url"));
+    return JSON.parse(Buffer.concat([d.update(Buffer.from(ctB, "base64url")), d.final()]).toString("utf8")) as T;
+  } catch {
+    return null;
+  }
+}

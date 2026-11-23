@@ -8,6 +8,7 @@ import { baseUrl } from "@/lib/env";
 import { answerText, integrityCheck, studioText, displayId } from "@/lib/export";
 import { allItems } from "@/lib/instrument/forms";
 import { SG_MEANING, type SgCode } from "@/lib/instrument/safeguarding";
+import { CATEGORY_LABEL, type LexiconHit } from "@/lib/instrument/lexicon";
 import { analyse, latestReview, safeguardRows } from "@/lib/instrument/store";
 import type { Source } from "@/lib/instrument/types";
 import { isAdmin } from "@/lib/session";
@@ -97,19 +98,33 @@ export default async function AdminCase({
           <h2>Safeguarding {openSg.length ? <span className="badge badge-risk">{openSg.length} open</span> : <span className="badge badge-ok">all actioned</span>}</h2>
           <p className="muted">
             Flag, do not screen. Nothing here goes into the report or the Studio export. Act on each trigger and record what you did.
+            For immediate danger call 112; Child Helpline 1098; Tele-MANAS 14416. <a href="/admin/safeguarding">Lexicon and outcomes</a>
           </p>
           {sgRows.map((r) => {
             const h = heldText(r.source, r.item);
             const note = r.note_enc ? open<{ note: string }>(r.note_enc)?.note : null;
+            const detail = r.detail_enc ? open<LexiconHit[]>(r.detail_enc) : null;
             return (
               <div key={r.id} className="card sg-row">
                 <div className="card-head">
                   <h3>
                     {r.code} · {r.source === "educator" ? "teacher" : r.source} · {displayId(a?.ctx.band ?? "C", (r.source === "educator" ? "teacher" : r.source) as Source, r.item)}
                   </h3>
-                  <span className={`badge ${r.status === "open" ? "badge-risk" : "badge-ok"}`}>{r.status}</span>
+                  <span className={`badge ${r.status === "open" ? "badge-risk" : "badge-ok"}`}>
+                    {r.status === "open" ? (r.code === "SG-4U" ? "open · act today" : "open") : (r.outcome ?? r.status).replace("_", " ")}
+                  </span>
                 </div>
                 <p>{SG_MEANING[r.code as SgCode] ?? r.code}</p>
+                {detail && detail.length > 0 && (
+                  <ul className="small" style={{ margin: 0 }}>
+                    {detail.map((d, i) => (
+                      <li key={i}>
+                        <strong>{d.severity}</strong> · {CATEGORY_LABEL[d.category]} · matched “{d.phrase}”
+                        {d.tags.length ? ` · ${d.tags.join(", ")}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <p>
                   <strong>{h.stem}</strong>
                   <br />
@@ -121,7 +136,8 @@ export default async function AdminCase({
                     <input type="hidden" name="sg" value={r.id} />
                     <select name="outcome" defaultValue="actioned">
                       <option value="actioned">Actioned — I followed up</option>
-                      <option value="cleared">Cleared — read in context, no concern</option>
+                      <option value="cleared_context">Cleared — read in context, no concern</option>
+                      <option value="false_alarm">False alarm — the words were matched wrongly</option>
                     </select>
                     <textarea name="note" rows={2} required minLength={10} placeholder="What you did, who you contacted, when" />
                     <div><button className="btn" type="submit">Record</button></div>
