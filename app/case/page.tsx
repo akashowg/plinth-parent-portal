@@ -7,6 +7,7 @@ import { baseUrl } from "@/lib/env";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { parentCaseId } from "@/lib/session";
+import { caseContext } from "@/lib/instrument/store";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function CasePage({ searchParams }: { searchParams: Promise
   const have = await submittedSources(id);
   const { saved } = await searchParams;
   const locked = c.status === "in_studio" || c.status === "delivered";
+  const bandA = caseContext(c)?.band === "A";
 
   const studentUrl = `${baseUrl()}/s/${tokens.student}`;
   const teacherUrl = `${baseUrl()}/t/${tokens.teacher}`;
@@ -54,13 +56,14 @@ export default async function CasePage({ searchParams }: { searchParams: Promise
           <Badge ok={have.has("parent")} lang={lang} />
         </div>
         <p>{t(lang, "step1Lead")}</p>
-        {!locked && (
+        {!locked && !have.has("parent") && (
           <div className="row">
-            <a className={have.has("parent") ? "btn btn-quiet" : "btn"} href="/case/parent-form">
-              {have.has("parent") ? t(lang, "editForm") : t(lang, "fillForm")}
+            <a className="btn" href="/case/parent-form">
+              {t(lang, "fillForm")}
             </a>
           </div>
         )}
+        {have.has("parent") && <p className="small">{t(lang, "parentOnce")}</p>}
       </div>
 
       <div className="card">
@@ -68,8 +71,17 @@ export default async function CasePage({ searchParams }: { searchParams: Promise
           <h3>2 · {t(lang, "step2")}</h3>
           <Badge ok={have.has("student")} lang={lang} />
         </div>
-        <p>{t(lang, "step2Lead")}</p>
-        {!locked && !have.has("student") && (
+        <p>{bandA ? t(lang, "step2LeadA") : t(lang, "step2Lead")}</p>
+        {!locked && !have.has("student") && bandA && (
+          <>
+            <p className="small" style={{ marginTop: 4 }}>{t(lang, "adminLinkLabel")}</p>
+            <div className="linkbox">{studentUrl}</div>
+            <div className="row">
+              <CopyButton text={studentUrl} label={t(lang, "copyLink")} copiedLabel={t(lang, "copied")} />
+            </div>
+          </>
+        )}
+        {!locked && !have.has("student") && !bandA && (
           <>
             <div className="row">
               <a className="btn" href={`/s/${tokens.student}`}>

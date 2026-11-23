@@ -9,7 +9,7 @@ function content(lang: "en" | "hi", contact: string): { title: string; version: 
   if (lang === "hi") {
     return {
       title: "गोपनीयता सूचना",
-      version: "संस्करण 1 · 23 नवंबर 2026",
+      version: "संस्करण 2 · 23 नवंबर 2026",
       blocks: [
         { h: "हम कौन हैं", p: [`PLINTH Network यह पोर्टल चलाता है और आपकी दी गई जानकारी के लिए ज़िम्मेदार है। संपर्क: ${contact}`] },
         {
@@ -18,7 +18,8 @@ function content(lang: "en" | "hi", contact: string): { title: string; version: 
             "आपके बारे में: नाम, बच्चे से संबंध, ईमेल, और वैकल्पिक रूप से WhatsApp नंबर।",
             "आपके बच्चे के बारे में: नाम, जन्म तिथि, कक्षा, शहर, राज्य, और आपके, आपके बच्चे के तथा एक शिक्षक के फ़ॉर्म में दिए उत्तर।",
             "सहमति का रिकॉर्ड: सहमति का समय, सूचना का संस्करण, और आपके IP पते का एक-तरफ़ा हैश।",
-            "हम अंक, स्क्रीन उपयोग या चिकित्सा जानकारी नहीं माँगते।",
+            "फ़ॉर्म रोज़मर्रा के व्यवहार, सीखने, भावनाओं, दोस्ती, नींद, शारीरिक गतिविधि, स्क्रीन समय, ट्यूशन के घंटों और घर की भाषा के बारे में पूछते हैं। हम अंक, कोई निदान या चिकित्सा इतिहास नहीं माँगते।",
+            "6–10 वर्ष के बच्चों के प्रश्न एक प्रशिक्षित वयस्क पढ़कर सुनाते हैं जो माता-पिता नहीं हैं; उनका नाम और भूमिका सहमति रिकॉर्ड में रखी जाती है।",
           ],
         },
         {
@@ -31,9 +32,16 @@ function content(lang: "en" | "hi", contact: string): { title: string; version: 
         {
           h: "जानकारी कौन प्रोसेस करता है",
           p: [
-            "PLINTH के सेवा प्रदाता: होस्टिंग (Vercel), डेटाबेस, ईमेल (Resend), और डोज़ियर का प्रारूप तैयार करने के लिए AI मॉडल (Anthropic का Claude)। इनमें से कुछ भारत के बाहर जानकारी प्रोसेस कर सकते हैं।",
+            "PLINTH के सेवा प्रदाता: होस्टिंग (Vercel), डेटाबेस, ईमेल (Google Gmail), और डोज़ियर का प्रारूप तैयार करने के लिए AI मॉडल (Anthropic का Claude)। इनमें से कुछ भारत के बाहर जानकारी प्रोसेस कर सकते हैं।",
             "हर डोज़ियर आपको भेजे जाने से पहले PLINTH का एक व्यक्ति पढ़ता और स्वीकृत करता है।",
-            "आपके उत्तर आपके बच्चे के स्कूल के साथ साझा नहीं किए जाते। शिक्षक आपके उत्तर नहीं देखते, और आप शिक्षक के उत्तर नहीं देखते।",
+            "आपके उत्तर आपके बच्चे के स्कूल के साथ साझा नहीं किए जाते, नीचे दी गई सुरक्षा स्थिति को छोड़कर। शिक्षक आपके उत्तर नहीं देखते, आप शिक्षक के या अपने बच्चे के उत्तर नहीं देखते, और बच्चा आपके उत्तर नहीं देखता।",
+          ],
+        },
+        {
+          h: "सुरक्षा (सेफ़गार्डिंग)",
+          p: [
+            "PLINTH मानसिक स्वास्थ्य की जाँच नहीं करता। फिर भी, यदि किसी उत्तर से लगे कि बच्चे को सहायता की आवश्यकता हो सकती है, तो PLINTH के एक नामित व्यक्ति को सूचित किया जाता है, जो सावधानी से तय करते हैं कि किसे जानना ज़रूरी है — इसमें स्कूल का परामर्शदाता या पैस्टोरल प्रमुख शामिल हो सकते हैं।",
+            "ऐसे उत्तर डोज़ियर में कभी नहीं लिखे जाते और AI को कभी नहीं भेजे जाते।",
           ],
         },
         {
@@ -55,7 +63,7 @@ function content(lang: "en" | "hi", contact: string): { title: string; version: 
   }
   return {
     title: "Privacy notice",
-    version: "Version 1 · 23 November 2026",
+    version: "Version 2 · 23 November 2026",
     blocks: [
       { h: "Who we are", p: [`PLINTH Network runs this portal and is responsible for the information you give it. Contact: ${contact}`] },
       {
@@ -64,7 +72,8 @@ function content(lang: "en" | "hi", contact: string): { title: string; version: 
           "About you: your name, relationship to the child, email, and optionally a WhatsApp number.",
           "About your child: name, date of birth, class, city, state, and the answers given in your form, your child’s form and one teacher’s form.",
           "Your consent record: when consent was given, the version of this notice, and a one-way hash of your IP address.",
-          "We do not ask for marks, screen use or medical information.",
+          "The forms ask about everyday behaviour, learning, feelings, friendships, sleep, physical activity, screen time, tuition hours and home language. We do not ask for marks, a diagnosis or medical history.",
+          "For children aged 6–10, a trained adult who is not a parent reads the child’s questions aloud; their name and role are kept in the consent record.",
         ],
       },
       {
@@ -77,9 +86,16 @@ function content(lang: "en" | "hi", contact: string): { title: string; version: 
       {
         h: "Who processes it",
         p: [
-          "PLINTH’s service providers: hosting (Vercel), the database, email (Resend), and an AI model that drafts the dossier (Claude, by Anthropic). Some of them may process information outside India.",
+          "PLINTH’s service providers: hosting (Vercel), the database, email (Google Gmail), and an AI model that drafts the dossier (Claude, by Anthropic). Some of them may process information outside India.",
           "A person at PLINTH reads and approves every dossier before it is sent to you.",
-          "Your answers are not shared with your child’s school. The teacher does not see your answers, and you do not see the teacher’s.",
+          "Your answers are not shared with your child’s school, except as described under safeguarding below. The teacher does not see your answers; you do not see the teacher’s or your child’s; your child does not see yours.",
+        ],
+      },
+      {
+        h: "Safeguarding",
+        p: [
+          "PLINTH does not screen for mental health. But if an answer suggests a child may need support, a named person at PLINTH is alerted and decides, with care, who needs to know — which may include the school counsellor or pastoral lead.",
+          "Those answers are never written into the dossier and never sent to the AI model.",
         ],
       },
       {

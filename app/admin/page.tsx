@@ -37,10 +37,11 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const { erased, show } = await searchParams;
   const sql = await db();
   const rows = await sql<
-    { id: string; ref: string; created_at: Date; status: string; child_enc: string; withdrawn_at: Date | null; srcs: string[] | null }[]
+    { id: string; ref: string; created_at: Date; status: string; child_enc: string; withdrawn_at: Date | null; band: string | null; srcs: string[] | null; sg_open: number }[]
   >`
-    select c.id, c.ref, c.created_at, c.status, c.child_enc, c.withdrawn_at,
-           array_remove(array_agg(s.source), null) as srcs
+    select c.id, c.ref, c.created_at, c.status, c.child_enc, c.withdrawn_at, c.band,
+           array_remove(array_agg(distinct s.source), null) as srcs,
+           (select count(*)::int from safeguards g where g.case_id = c.id and g.status = 'open') as sg_open
     from cases c left join submissions s on s.case_id = c.id
     where ${show === "all" ? sql`true` : sql`c.status <> 'awaiting_verification'`}
     group by c.id order by c.created_at desc limit 500`;
@@ -70,6 +71,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <th>Ref</th>
             <th>Child</th>
             <th>Class</th>
+            <th>Band</th>
             <th>Started</th>
             <th>Sources</th>
             <th>Status</th>
@@ -84,6 +86,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <td><a href={`/admin/case/${r.id}`}>{r.ref}</a></td>
                 <td>{child?.name ?? "—"}</td>
                 <td>{child?.klass ?? "—"}</td>
+                <td>{r.band ?? "—"}</td>
                 <td>{new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</td>
                 <td>
                   {(["student", "parent", "educator"] as const).map((s) => (
@@ -92,13 +95,16 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                     </span>
                   ))}
                 </td>
-                <td>{STATUS_LABEL[r.status] ?? r.status}</td>
+                <td>
+                  {STATUS_LABEL[r.status] ?? r.status}
+                  {r.sg_open > 0 && <span className="badge badge-risk" style={{ marginLeft: 6 }}>safeguarding {r.sg_open}</span>}
+                </td>
               </tr>
             );
           })}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={6} className="muted">No profiles yet.</td>
+              <td colSpan={7} className="muted">No profiles yet.</td>
             </tr>
           )}
         </tbody>

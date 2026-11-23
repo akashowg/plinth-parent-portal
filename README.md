@@ -6,16 +6,24 @@ English and Hindi. No payments. Built with Next.js 16 and Postgres, hosted on Ve
 
 ## What it does
 
+The portal collects the three HDI sources using **Instrument v2.0** (from *HDI Instrument Architecture v2.0*): three age bands, three independent forms, nine answer-quality checks, safeguarding routing and a signal ledger.
+
 | Who | Where | What happens |
 | --- | --- | --- |
-| Parent | `/start` | Gives their own and the child's details, ticks five consent points, gets a 6-digit email code |
-| Parent | `/verify` → `/case` | Code verifies the email and records consent; the profile page shows the three forms and their status |
-| Parent | `/case/parent-form` | 12 questions, editable until PLINTH sets the case to *In Studio* |
-| Child | `/s/<link>` | Assent screen, then 12 reflection questions; any can be skipped; one use only |
-| Teacher | `/t/<link>` | Role, six quick ratings, five written answers, own-observation declaration; one use only |
-| Parent | `/login` | Returning parents sign in with an email code |
-| Parent | `/case` → Withdraw | Deletes every answer at once; keeps only the record that consent was given and withdrawn |
-| Akash | `/admin` | Queue of profiles with source status; per case: details, source-integrity warning, **Copy intake** / **Download .txt** for Studio, status, erase |
+| Parent | `/start` | Gives their own and the child's details (ages 6–18 only), ticks six consent points including safeguarding, gets a 6-digit email code. The **band** is set from date of birth, never class: A 6–10, B 11–14, C 15–18 |
+| Parent | `/case/parent-form` | ~48 described-behaviour items in 10 parts (57 in Band A): how much of the child they see, learning, feelings, character, friends, home, sleep and screens, change, then hopes (locked once passed). Submitted once |
+| Child, Bands B/C | `/s/<link>` | Assent, then 10–11 parts: subject grid (enjoyment × ease), learning, thinking scenarios, motivation, feelings, people, character, direction, wellbeing, home, and the interest grid from age 12. ~20 min. Must be done with nobody watching |
+| Child, Band A | `/s/<link>` | Opened by a trained adult who is **not a parent** (Akash or a school counsellor), read aloud one-to-one, 29 items on a 3-point scale |
+| Teacher | `/t/<link>` | Identity, tenure and class size, 20 observed-behaviour items (29 in Band A), trajectory, and a required "moment that surprised you" |
+| Akash | `/admin` | Queue with band and open-safeguarding badges; per case: safeguarding panel, validity flags, **signal ledger**, derived signals, reviewer sign-off, Studio export, reopen a form, erase |
+
+Answers save on the device as respondents go (only that device can resume a draft).
+
+**Signal ledger.** Each of 28 constructs gets a 1–5 value per source (a source needs ≥ 2 answered items), a verdict (convergent ≤ 1.0 apart, divergent ≥ 1.5, partial between), a confidence tier, and engine permissions. Divergent sources are never averaged; they produce a contradiction token. Validity flags can only lower confidence.
+
+**Validity checks.** Attention checks, consistency pairs, implausible-virtue items, straightlining (invalidates the section), section timing, reverse-coding, parent visibility weighting, teacher tenure/class-size weighting, cross-source divergence, plus "someone was watching" for the child form.
+
+**Safeguarding (flag, do not screen).** SG-1 child rarely feels okay · SG-2 no adult at school to go to · SG-3 sleep under 5 h or a marked mood/energy change · SG-4 written words matching the risk lexicon · RV a reviewer-only note. Each trigger emails the named contact (`SAFEGUARDING_EMAIL`, else `ADMIN_EMAIL`, else `CONTACT_EMAIL`) with codes only, and **locks the Studio export** until it is actioned with a note. Matched text never enters the export.
 
 **Source integrity.** If the teacher's text repeats the parent's (word-phrase overlap ≥ 25% warns, ≥ 60% flags as duplicate), the admin page and the exported intake both say so, matching the Studio rule.
 
@@ -63,6 +71,8 @@ The quickest database route is Vercel → Project → **Storage** → Create →
 | `CONTACT_EMAIL` | The address shown in the privacy notice for questions and grievances |
 | `PUBLIC_BASE_URL` | The site address, e.g. `https://parents.plinthnetwork.in` (used in the child and teacher links) |
 | `ADMIN_EMAIL` | *Optional.* Where new-profile and form-received alerts go. Alerts never contain answers |
+| `SAFEGUARDING_EMAIL` | *Optional.* Who receives safeguarding alerts. Falls back to `ADMIN_EMAIL`, then `CONTACT_EMAIL` |
+| `SAFEGUARDING_CONTACT_NAME` | *Optional.* The named person shown on consent and assent screens. Default "Akash Bhattacharya, PLINTH HDI reviewer" |
 
 Never set `DEV_SHOW_CODES` on Vercel. After adding or changing settings, redeploy (Deployments → ⋯ → Redeploy).
 
@@ -77,20 +87,23 @@ Open `/admin`, sign in, and confirm there is no "Settings not configured" warnin
 ## Using it day to day
 
 1. Send parents the site address.
-2. When a case shows **Ready for Studio** (all three sources in), open it in `/admin`, click **Copy intake**, paste into Studio → Analyse, choose the report type and run.
-3. Set the case to **In Studio**. This locks the forms so the intake you analysed cannot change underneath you.
-4. After sign-off, send the dossier to the parent and set the case to **Delivered**.
-5. If a parent withdraws, the portal deletes their answers automatically and emails `ADMIN_EMAIL`. Delete the matching Studio copy too.
+2. For a **Band A** case, arrange the read-aloud session with the family; open the child link from the admin case page (or send it to the school counsellor).
+3. Act on any **safeguarding** trigger within 48 hours and record what you did. The export stays locked until you do.
+4. When a case shows **Ready for Studio**, read the validity flags and ledger, sign off, click **Copy intake**, paste into Studio → Analyse, choose the report type and run.
+5. Set the case to **In Studio**. This locks the forms so the intake you analysed cannot change underneath you.
+6. After review, send the dossier to the parent and set the case to **Delivered**.
+7. If a parent withdraws, the portal deletes their answers automatically and emails `ADMIN_EMAIL`. Delete the matching Studio copy too.
 
 ## Changing the questions
 
-All questions, in both languages, live in `lib/questions.ts`. Edit the wording, then change `QUESTION_SET_VERSION`. Each submission stores the version it was answered under, and the Studio export prints the question beside every answer. Interface text lives in `lib/i18n.ts`.
+The item bank lives in `lib/instrument/`: `student.ts`, `parent.ts`, `teacher.ts` (English and Hindi side by side), `constructs.ts` (which items feed which construct, and the HDI-7 / PIC-5 mapping), `scoring.ts` (validity and ledger), `derived.ts`, `safeguarding.ts`. Item keys are permanent: never reuse a key for a different question — retire it and add a new one, then change `INSTRUMENT_VERSION` in `forms.ts`. Interface text lives in `lib/i18n.ts` and `lib/instrument/ui.ts`.
 
 ## Before launch — needs a decision or a review
 
-- **Question sets are a draft.** They were written to cover what the Studio fact sheet extracts, because the Zoho form's exact questions were not available. Approve or replace them.
-- **Hindi text** should be read by a native speaker.
-- **Legal review.** The consent points, privacy notice (`app/privacy/page.tsx`), 30-day erasure promise and the email-code method of verifying a parent need a lawyer's check against the DPDP Rules before children's data obligations apply (14 May 2027).
+- **Pilot first.** v2.0 is a pre-pilot instrument. Run stage V0 (think-aloud with 12 children, 4 per band) before wider use, and describe it as a structured developmental inventory, not a validated assessment, until V3.
+- **Hindi text** should be read by a native speaker, especially the child forms.
+- **Safeguarding lexicon** (`lib/instrument/safeguarding.ts`) is a starter list; review it with a safeguarding professional. Decide who is the named contact for school-referred families.
+- **Legal review.** The consent points, privacy notice (`app/privacy/page.tsx`), the safeguarding promise, the 30-day erasure promise and the email-code method of verifying a parent need a lawyer's check against the DPDP Rules before children's data obligations apply (14 May 2027).
 - **Back-ups.** Turn on Supabase backups (point-in-time recovery on a paid plan) and keep the encryption key safe.
 
 ## Local development

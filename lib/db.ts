@@ -75,6 +75,40 @@ create table if not exists codes (
 );
 create index if not exists codes_email on codes(email_hash, created_at desc);
 
+alter table cases add column if not exists band text;
+alter table cases add column if not exists instrument text;
+
+create table if not exists drafts (
+  case_id uuid not null references cases(id) on delete cascade,
+  source text not null,
+  device_hash text not null,
+  data_enc text not null,
+  updated_at timestamptz not null default now(),
+  primary key (case_id, source)
+);
+
+create table if not exists safeguards (
+  id bigserial primary key,
+  case_id uuid not null references cases(id) on delete cascade,
+  code text not null,
+  source text not null,
+  item text not null,
+  created_at timestamptz not null default now(),
+  status text not null default 'open',
+  note_enc text,
+  actioned_at timestamptz
+);
+create index if not exists safeguards_case on safeguards(case_id);
+
+create table if not exists reviews (
+  id bigserial primary key,
+  case_id uuid not null references cases(id) on delete cascade,
+  reviewer text not null,
+  role text not null,
+  attest jsonb not null,
+  at timestamptz not null default now()
+);
+
 create table if not exists audit (
   id bigserial primary key,
   case_id uuid,

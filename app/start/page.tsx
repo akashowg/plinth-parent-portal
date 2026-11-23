@@ -3,11 +3,19 @@ import { startCase } from "@/app/actions";
 import { CONSENT_ITEMS } from "@/lib/consent";
 import { getLang } from "@/lib/lang";
 import { t, type Key } from "@/lib/i18n";
-import { CLASS_OPTIONS } from "@/lib/questions";
+import { CLASS_OPTIONS } from "@/lib/instrument/forms";
+import { safeguardingContactName } from "@/lib/email";
 
 export default async function Start() {
   const lang = await getLang();
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const shift = (years: number, days = 0) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear() - years, now.getUTCMonth(), now.getUTCDate() + days));
+    return d.toISOString().slice(0, 10);
+  };
+  const maxDob = shift(6); // at least 6 years old
+  const minDob = shift(19, 1); // younger than 19
+  const contact = safeguardingContactName();
   return (
     <div className="wrap">
       <span className="kicker">{t(lang, "kicker")}</span>
@@ -59,7 +67,7 @@ export default async function Start() {
           <div className="grid-2">
             <label className="field">
               <span className="q-label">{t(lang, "dob")} <span className="req">*</span></span>
-              <input type="date" name="dob" required max={today} min="2004-01-01" />
+              <input type="date" name="dob" required max={maxDob} min={minDob} />
             </label>
             <label className="field">
               <span className="q-label">{t(lang, "klass")} <span className="req">*</span></span>
@@ -99,7 +107,7 @@ export default async function Start() {
             {CONSENT_ITEMS.map((k) => (
               <label key={k} className="check">
                 <input type="checkbox" name={k} value="yes" required />
-                <span>{t(lang, k as Key)}</span>
+                <span>{t(lang, k as Key).replace("{name}", contact)}</span>
               </label>
             ))}
           </div>

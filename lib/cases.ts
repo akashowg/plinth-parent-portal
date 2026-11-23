@@ -18,6 +18,8 @@ export type CaseRow = {
   verified_at: Date | null;
   withdrawn_at: Date | null;
   admin_note: string | null;
+  band?: string | null;
+  instrument?: string | null;
 };
 
 export const ADMIN_STATUSES = ["collecting", "ready", "in_studio", "delivered"] as const;

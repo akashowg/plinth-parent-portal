@@ -1,4 +1,4 @@
-import type { Lang } from "./questions";
+import type { Lang } from "./instrument/types";
 
 /**
  * Interface text in English and Hindi. Hindi drafted for review by a native speaker before launch.
@@ -107,6 +107,38 @@ const D = {
     en: "I can withdraw consent at any time from this portal, and my family’s answers will then be deleted.",
     hi: "मैं इस पोर्टल से कभी भी सहमति वापस ले सकता/सकती हूँ, और तब मेरे परिवार के उत्तर हटा दिए जाएँगे।",
   },
+  c_safeguard: {
+    en: "If my child’s answers suggest they may need support, a named person at PLINTH ({name}) will be alerted and will decide, with care, who needs to know. Those answers are never written into the dossier.",
+    hi: "यदि मेरे बच्चे के उत्तरों से लगे कि उसे सहायता की आवश्यकता हो सकती है, तो PLINTH के एक नामित व्यक्ति ({name}) को सूचित किया जाएगा, जो सावधानी से तय करेंगे कि किसे जानना ज़रूरी है। ऐसे उत्तर डोज़ियर में कभी नहीं लिखे जाते।",
+  },
+  errAge: {
+    en: "PLINTH HDI currently works for children aged 6 to 18. Please check the date of birth.",
+    hi: "PLINTH HDI अभी 6 से 18 वर्ष के बच्चों के लिए है। कृपया जन्मतिथि जाँचें।",
+  },
+  assent5: {
+    en: "If something you tell us makes us think you might need support, we will let one named person know ({name}) so that a real person can help. It is never written into any report.",
+    hi: "अगर तुम्हारी किसी बात से हमें लगे कि तुम्हें सहायता चाहिए, तो हम एक नामित व्यक्ति ({name}) को बताएँगे ताकि कोई सच्चा इंसान मदद कर सके। यह किसी रिपोर्ट में कभी नहीं लिखा जाता।",
+  },
+  step2LeadA: {
+    en: "For children aged 6–10, the questions are read aloud one-to-one by a trained adult who is not a parent — a PLINTH reviewer or your school counsellor. PLINTH will contact you to arrange a short session (about 15 minutes). Send this link only to that adult.",
+    hi: "6–10 वर्ष के बच्चों के लिए प्रश्न एक प्रशिक्षित वयस्क — PLINTH समीक्षक या आपके स्कूल के परामर्शदाता, जो माता-पिता नहीं हैं — बच्चे को अकेले में पढ़कर सुनाते हैं। PLINTH एक छोटे सत्र (लगभग 15 मिनट) के लिए आपसे संपर्क करेगा। यह लिंक केवल उसी वयस्क को भेजें।",
+  },
+  adminLinkLabel: { en: "Link for the adult who will read the questions:", hi: "प्रश्न पढ़ने वाले वयस्क के लिए लिंक:" },
+  parentOnce: {
+    en: "Your form has been received. If you need to change something, write to us and we will reopen it.",
+    hi: "आपका फ़ॉर्म प्राप्त हो गया है। कुछ बदलना हो तो हमें लिखें, हम उसे फिर से खोल देंगे।",
+  },
+  continueForm: { en: "Continue the parent form", hi: "अभिभावक फ़ॉर्म जारी रखें" },
+  parentPreface: {
+    en: "These questions are about what you see your child do. Each one offers four descriptions — choose the closest to what usually happens, and use “I haven’t had a chance to see this” whenever that is the honest answer.",
+    hi: "ये प्रश्न इस बारे में हैं कि आप अपने बच्चे को क्या करते देखते हैं। हर प्रश्न में चार विवरण हैं — जो आमतौर पर होता है उसके सबसे करीब वाला चुनें, और जब ईमानदार उत्तर यही हो तो “मुझे यह देखने का अवसर नहीं मिला” चुनें।",
+  },
+  adminTitle: { en: "Child’s questions — read aloud", hi: "बच्चे के प्रश्न — पढ़कर सुनाएँ" },
+  adminLead: {
+    en: "For the trained adult reading this with the child. Read each question exactly as written, in the child’s stronger language. Do not explain the options or suggest an answer. Enter the child’s choice as they give it.",
+    hi: "बच्चे के साथ यह पढ़ने वाले प्रशिक्षित वयस्क के लिए। हर प्रश्न ठीक वैसा ही पढ़ें जैसा लिखा है, बच्चे की बेहतर समझी जाने वाली भाषा में। विकल्प न समझाएँ, न कोई उत्तर सुझाएँ। बच्चा जो चुने वही दर्ज करें।",
+  },
+  adminThanks: { en: "Thank you. The child’s answers have been received.", hi: "धन्यवाद। बच्चे के उत्तर प्राप्त हो गए हैं।" },
   readNotice: { en: "Read the full privacy notice", hi: "पूरी गोपनीयता सूचना पढ़ें" },
   continueVerify: { en: "Continue and send my code", hi: "आगे बढ़ें और मेरा कोड भेजें" },
   errRequired: { en: "Please fill every required field.", hi: "कृपया सभी आवश्यक जानकारी भरें।" },
@@ -141,13 +173,16 @@ const D = {
   caseTitle: { en: "Your child’s profile", hi: "आपके बच्चे की प्रोफ़ाइल" },
   reference: { en: "Reference", hi: "संदर्भ" },
   step1: { en: "Your parent form", hi: "आपका अभिभावक फ़ॉर्म" },
-  step1Lead: { en: "About 15 minutes. Honest, everyday observations help most.", hi: "लगभग 15 मिनट। ईमानदार, रोज़मर्रा के अवलोकन सबसे अधिक मदद करते हैं।" },
+  step1Lead: {
+    en: "About 12 minutes (about 15 for children aged 6–10). Choose what you usually see, not what you hope for. The form is submitted once.",
+    hi: "लगभग 12 मिनट (6–10 वर्ष के बच्चों के लिए लगभग 15)। वह चुनें जो आप आमतौर पर देखते हैं, वह नहीं जिसकी आप उम्मीद करते हैं। फ़ॉर्म एक बार जमा होता है।",
+  },
   fillForm: { en: "Fill the parent form", hi: "अभिभावक फ़ॉर्म भरें" },
   editForm: { en: "Review or change my answers", hi: "मेरे उत्तर देखें या बदलें" },
   step2: { en: "Your child’s form", hi: "आपके बच्चे का फ़ॉर्म" },
   step2Lead: {
-    en: "Your child can fill it here on this device now, or you can send them the link. Let them answer in their own words; please do not answer for them. For a child under 8, sit beside them and write their words as they say them.",
-    hi: "आपका बच्चा इसे अभी इसी फ़ोन या कंप्यूटर पर भर सकता है, या आप उसे लिंक भेज सकते हैं। उन्हें अपने शब्दों में उत्तर देने दें; कृपया उनकी ओर से उत्तर न दें। 8 वर्ष से छोटे बच्चे के साथ बैठें और जैसा वह बोले वैसा ही लिखें।",
+    en: "About 20 minutes. Hand this device to your child and leave the room — the answers are only useful if your child gives them without anyone watching. Or send them the link.",
+    hi: "लगभग 20 मिनट। यह फ़ोन या कंप्यूटर अपने बच्चे को दें और कमरे से बाहर चले जाएँ — उत्तर तभी उपयोगी हैं जब बच्चा उन्हें बिना किसी के देखे दे। या उसे लिंक भेजें।",
   },
   fillHere: { en: "My child will fill it here now", hi: "मेरा बच्चा इसे अभी यहीं भरेगा" },
   orShare: { en: "Or send the link to your child:", hi: "या अपने बच्चे को लिंक भेजें:" },
@@ -161,8 +196,8 @@ const D = {
   copied: { en: "Copied", hi: "कॉपी हो गया" },
   sendWhatsApp: { en: "Send on WhatsApp", hi: "WhatsApp पर भेजें" },
   waStudent: {
-    en: "Hi! This is a short reflection form about how you like to learn and what you enjoy. It is not a test and nothing is marked. Please answer in your own words:",
-    hi: "नमस्ते! यह एक छोटा फ़ॉर्म है कि तुम्हें कैसे सीखना और क्या करना अच्छा लगता है। यह कोई परीक्षा नहीं है और कोई अंक नहीं मिलते। कृपया अपने शब्दों में उत्तर दो:",
+    en: "Hi! This is a reflection form about how you learn, what you enjoy and what matters to you. It takes about 20 minutes, it is not a test and nothing is marked. Please answer on your own, with nobody watching:",
+    hi: "नमस्ते! यह एक फ़ॉर्म है कि तुम कैसे सीखते हो, तुम्हें क्या अच्छा लगता है और तुम्हारे लिए क्या मायने रखता है। इसमें लगभग 20 मिनट लगते हैं, यह कोई परीक्षा नहीं है और कोई अंक नहीं मिलते। कृपया अकेले में, बिना किसी के देखे उत्तर दो:",
   },
   waTeacher: {
     en: "Dear teacher, I am preparing a PLINTH developmental profile for my child. Your honest classroom observation would help greatly — it takes about 10 minutes, and I will not see your answers:",
@@ -211,10 +246,13 @@ const D = {
   assentTitle: { en: "Before you start", hi: "शुरू करने से पहले" },
   assent1: { en: "This is not a test. Nothing is marked.", hi: "यह कोई परीक्षा नहीं है। कोई अंक नहीं मिलते।" },
   assent2: { en: "There are no right or wrong answers.", hi: "कोई उत्तर सही या गलत नहीं है।" },
-  assent3: { en: "You can skip any question you don’t want to answer.", hi: "जिस प्रश्न का उत्तर नहीं देना चाहते, उसे छोड़ सकते हो।" },
+  assent3: {
+    en: "You can skip the written questions if you want to. Most questions just need a tap.",
+    hi: "चाहो तो लिखने वाले प्रश्न छोड़ सकते हो। ज़्यादातर प्रश्नों में बस एक विकल्प चुनना है।",
+  },
   assent4: {
-    en: "Your parent has agreed to this. Your answers help the people around you support you better.",
-    hi: "तुम्हारे माता-पिता ने इसके लिए सहमति दी है। तुम्हारे उत्तर तुम्हारे आसपास के लोगों को तुम्हारी बेहतर मदद करने में सहायक होंगे।",
+    en: "Your parent has agreed to this, but they will not see your answers. Please answer on your own, with nobody watching.",
+    hi: "तुम्हारे माता-पिता ने इसके लिए सहमति दी है, पर वे तुम्हारे उत्तर नहीं देखेंगे। कृपया अकेले में, बिना किसी के देखे उत्तर दो।",
   },
   assentAgree: { en: "I’m happy to answer.", hi: "मैं उत्तर देने के लिए तैयार हूँ।" },
   errAssent: { en: "Please tick “I’m happy to answer” to continue.", hi: "आगे बढ़ने के लिए कृपया “मैं उत्तर देने के लिए तैयार हूँ” चिह्नित करो।" },
@@ -225,8 +263,8 @@ const D = {
 
   teacherTitle: { en: "Teacher observation", hi: "शिक्षक अवलोकन" },
   teacherLead: {
-    en: "A parent has asked for your honest observation of their child, as part of a PLINTH developmental profile. About 10 minutes.",
-    hi: "एक अभिभावक ने PLINTH विकासात्मक प्रोफ़ाइल के लिए अपने बच्चे के बारे में आपका ईमानदार अवलोकन माँगा है। लगभग 10 मिनट।",
+    en: "A parent has asked for your observation of their child, as part of a PLINTH developmental profile. Every question is about something you have or haven’t seen in class. About 8 minutes (about 12 for primary classes).",
+    hi: "एक अभिभावक ने PLINTH विकासात्मक प्रोफ़ाइल के लिए अपने बच्चे के बारे में आपका अवलोकन माँगा है। हर प्रश्न किसी ऐसी बात के बारे में है जो आपने कक्षा में देखी है या नहीं देखी। लगभग 8 मिनट (प्राथमिक कक्षाओं के लिए लगभग 12)।",
   },
   teacherNotice: {
     en: "Your answers go only to PLINTH. The parent does not see them, and they are not shared with your school. Your name is kept with your answers so PLINTH can weigh your observation correctly.",

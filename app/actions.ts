@@ -8,8 +8,8 @@ import { devShowCodes, requireEnv } from "@/lib/env";
 import { notifyAdmin, sendMail } from "@/lib/email";
 import { getLang } from "@/lib/lang";
 import { t } from "@/lib/i18n";
-import { CLASS_OPTIONS, collectAnswers, QUESTION_SET_VERSION } from "@/lib/questions";
-import { ADMIN_STATUSES, caseByToken, getCase, submittedSources } from "@/lib/cases";
+import { bandForAge, CLASS_OPTIONS, exactAge } from "@/lib/instrument/forms";
+import { ADMIN_STATUSES, getCase } from "@/lib/cases";
 import { clearAdminSession, clearParentSession, isAdmin, parentCaseId, setAdminSession, setParentSession } from "@/lib/session";
 
 import { CONSENT_ITEMS, CONSENT_VERSION, type FormState } from "@/lib/consent";
@@ -66,6 +66,8 @@ export async function startCase(_: FormState, fd: FormData): Promise<FormState> 
   if (!CLASS_OPTIONS.includes(child.klass)) return { error: t(lang, "errRequired") };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(child.dob) || Number.isNaN(Date.parse(child.dob)) || Date.parse(child.dob) > Date.now())
     return { error: t(lang, "errRequired") };
+  const band = bandForAge(exactAge(child.dob));
+  if (!band) return { error: t(lang, "errAge") };
   if (!EMAIL_RE.test(parent.email)) return { error: t(lang, "errEmail") };
   const items = Object.fromEntries(CONSENT_ITEMS.map((k) => [k, fd.get(k) === "yes"]));
   if (!CONSENT_ITEMS.every((k) => items[k])) return { error: t(lang, "errConsent") };
@@ -75,8 +77,8 @@ export async function startCase(_: FormState, fd: FormData): Promise<FormState> 
   const tokens = { student: randomToken(18), teacher: randomToken(18) };
   const meta = await requestMeta();
   const [row] = await sql<{ id: string }[]>`
-    insert into cases (ref, lang, email_hash, parent_enc, child_enc, student_token_hash, teacher_token_hash, tokens_enc)
-    values (${caseRef()}, ${lang}, ${emailHash}, ${seal(parent)}, ${seal(child)},
+    insert into cases (ref, lang, band, email_hash, parent_enc, child_enc, student_token_hash, teacher_token_hash, tokens_enc)
+    values (${caseRef()}, ${lang}, ${band}, ${emailHash}, ${seal(parent)}, ${seal(child)},
             ${lookupHash("student:" + tokens.student)}, ${lookupHash("teacher:" + tokens.teacher)}, ${seal(tokens)})
     returning id`;
   await sql`insert into consents (case_id, kind, notice_version, items, ip_hash, user_agent)
@@ -107,8 +109,8 @@ export async function verifyCode(_: FormState, fd: FormData): Promise<FormState>
     return { error: t(lang, "errCode") };
   }
   await sql`update codes set used_at = now() where id = ${row.id}`;
-  const [c] = await sql<{ verified_at: Date | null; withdrawn_at: Date | null; ref: string }[]>`
-    select verified_at, withdrawn_at, ref from cases where id = ${caseId}`;
+  const [c] = await sql<{ verified_at: Date | null; withdrawn_at: Date | null; ref: string; band: string | null }[]>`
+    select verified_at, withdrawn_at, ref, band from cases where id = ${caseId}`;
   if (!c || c.withdrawn_at) return { error: t(lang, "errCode") };
   if (!c.verified_at) {
     await sql`update cases set verified_at = now(), status = 'collecting' where id = ${caseId}`;
@@ -116,7 +118,13 @@ export async function verifyCode(_: FormState, fd: FormData): Promise<FormState>
     await sql`insert into consents (case_id, kind, notice_version, items, ip_hash, user_agent)
               values (${caseId}, 'email_verified', ${CONSENT_VERSION}, ${sql.json({ method: "email_otp" })}, ${meta.ipHash}, ${meta.ua})`;
     await audit(caseId, "parent", "email_verified");
-    await notifyAdmin(`PLINTH portal: new profile ${c.ref}`, `A parent has given consent and verified their email for case ${c.ref}.`);
+    await notifyAdmin(
+      `PLINTH portal: new profile ${c.ref} (Band ${c.band ?? "?"})`,
+      `A parent has given consent and verified their email for case ${c.ref}.` +
+        (c.band === "A"
+          ? "\n\nBand A (ages 6–10): the child's questions must be read aloud one-to-one by a trained adult who is not a parent. Contact the family to arrange the session; the administrator link is on the admin case page."
+          : ""),
+    );
   }
   await setParentSession(caseId);
   redirect("/case");
@@ -144,75 +152,6 @@ export async function signOut() {
   redirect("/");
 }
 
-/* ------------------------------------------------------------------ submissions */
-async function saveSubmission(caseId: string, source: "parent" | "student" | "educator", answers: Record<string, string>) {
-  const sql = await db();
-  await sql`
-    insert into submissions (case_id, source, question_set, answers_enc)
-    values (${caseId}, ${source}, ${QUESTION_SET_VERSION}, ${seal(answers)})
-    on conflict (case_id, source) do update
-      set answers_enc = excluded.answers_enc, question_set = excluded.question_set, submitted_at = now()`;
-  await audit(caseId, source, `${source}_submitted`);
-  const have = await submittedSources(caseId);
-  const [c] = await sql<{ ref: string; status: string }[]>`select ref, status from cases where id = ${caseId}`;
-  if (have.size === 3 && c.status === "collecting") {
-    await sql`update cases set status = 'ready' where id = ${caseId}`;
-  }
-  await notifyAdmin(
-    `PLINTH portal: ${source} form received for ${c.ref}`,
-    `Case ${c.ref}: the ${source} form was received. Sources in: ${[...have].join(", ")} (${have.size}/3).`,
-  );
-}
-
-function blocked(c: { status: string; withdrawn_at: Date | null }) {
-  return !!c.withdrawn_at || c.status === "in_studio" || c.status === "delivered";
-}
-
-export async function submitParentForm(_: FormState, fd: FormData): Promise<FormState> {
-  const lang = await getLang();
-  const id = await parentCaseId();
-  if (!id) redirect("/login");
-  const c = await getCase(id);
-  if (!c || !c.verified_at || blocked(c)) redirect("/case");
-  const { answers, missing } = collectAnswers("parent", fd);
-  if (missing.length) return { error: t(lang, "errRequired") };
-  await saveSubmission(id, "parent", answers);
-  redirect("/case?saved=parent");
-}
-
-export async function submitStudentForm(_: FormState, fd: FormData): Promise<FormState> {
-  const lang = await getLang();
-  const token = s(fd, "token", 64);
-  const c = await caseByToken("student", token);
-  if (!c) return { error: t(lang, "linkInvalid") };
-  if (blocked(c)) return { error: t(lang, "alreadyAnswered") };
-  if (fd.get("assent") !== "yes") return { error: t(lang, "errAssent") };
-  const { answers } = collectAnswers("student", fd); // children may skip any question
-  const sql = await db();
-  const meta = await requestMeta();
-  await sql`insert into consents (case_id, kind, notice_version, items, ip_hash, user_agent)
-            values (${c.id}, 'student_assent', 'student-assent-v1-2026-11-23', ${sql.json({ assent: true, lang })}, ${meta.ipHash}, ${meta.ua})`;
-  await saveSubmission(c.id, "student", answers);
-  return { done: true };
-}
-
-export async function submitTeacherForm(_: FormState, fd: FormData): Promise<FormState> {
-  const lang = await getLang();
-  const token = s(fd, "token", 64);
-  const c = await caseByToken("teacher", token);
-  if (!c) return { error: t(lang, "linkInvalid") };
-  if (blocked(c)) return { error: t(lang, "alreadyAnswered") };
-  if (fd.get("declare") !== "yes") return { error: t(lang, "errDeclare") };
-  const { answers, missing } = collectAnswers("educator", fd);
-  if (missing.length) return { error: t(lang, "errRequired") };
-  const sql = await db();
-  const meta = await requestMeta();
-  await sql`insert into consents (case_id, kind, notice_version, items, ip_hash, user_agent)
-            values (${c.id}, 'teacher_declaration', 'teacher-notice-v1-2026-11-23', ${sql.json({ declared_own_observation: true, lang })}, ${meta.ipHash}, ${meta.ua})`;
-  await saveSubmission(c.id, "educator", answers);
-  return { done: true };
-}
-
 /* ------------------------------------------------------------------ withdrawal */
 export async function withdrawConsent(_: FormState, fd: FormData): Promise<FormState> {
   const lang = await getLang();
@@ -224,6 +163,8 @@ export async function withdrawConsent(_: FormState, fd: FormData): Promise<FormS
   const [c] = await sql<{ ref: string }[]>`select ref from cases where id = ${id}`;
   await sql.begin(async (tx) => {
     await tx`delete from submissions where case_id = ${id}`;
+    await tx`delete from drafts where case_id = ${id}`;
+    await tx`update safeguards set note_enc = null where case_id = ${id}`;
     await tx`delete from codes where case_id = ${id}`;
     // Keep only the proof that consent was given and withdrawn; erase the personal details.
     await tx`update cases set withdrawn_at = now(), status = 'withdrawn',
@@ -290,3 +231,50 @@ export async function adminEraseCase(fd: FormData) {
   await audit(id, "admin", "case_erased");
   redirect("/admin?erased=1");
 }
+
+/* ------------------------------------------------------------------ admin · safeguarding and review */
+export async function adminActionSafeguard(fd: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = s(fd, "id", 40);
+  const sgId = Number(s(fd, "sg", 20));
+  const outcome = s(fd, "outcome", 30);
+  const note = String(fd.get("note") ?? "").trim().slice(0, 2000);
+  if (!["actioned", "cleared"].includes(outcome) || note.length < 10) redirect(`/admin/case/${id}?sg=note`);
+  const sql = await db();
+  await sql`update safeguards set status = ${outcome}, note_enc = ${seal({ note, by: "admin" })}, actioned_at = now()
+            where id = ${sgId} and case_id = ${id}`;
+  await audit(id, "admin", `safeguard_${outcome}:${sgId}`);
+  redirect(`/admin/case/${id}?updated=sg-${sgId}`);
+}
+
+export async function adminSignOff(fd: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = s(fd, "id", 40);
+  const reviewer = s(fd, "reviewer", 120);
+  const role = s(fd, "role", 120);
+  const attest = {
+    validity_flags_reviewed: fd.get("a_validity") === "yes",
+    safeguarding_actioned_or_cleared: fd.get("a_safeguarding") === "yes",
+    contradictions_preserved: fd.get("a_contradictions") === "yes",
+  };
+  if (!reviewer || !role || !Object.values(attest).every(Boolean)) redirect(`/admin/case/${id}?review=incomplete`);
+  const sql = await db();
+  const open_ = await sql<{ n: number }[]>`select count(*)::int as n from safeguards where case_id = ${id} and status = 'open'`;
+  if ((open_[0]?.n ?? 0) > 0) redirect(`/admin/case/${id}?review=open`);
+  await sql`insert into reviews (case_id, reviewer, role, attest) values (${id}, ${reviewer}, ${role}, ${sql.json(attest)})`;
+  await audit(id, "admin", "reviewer_sign_off");
+  redirect(`/admin/case/${id}?updated=review-${Date.now()}`);
+}
+
+export async function adminReopenSource(fd: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = s(fd, "id", 40);
+  const source = s(fd, "source", 20);
+  if (!["parent", "student", "educator"].includes(source) || s(fd, "confirm", 20).toUpperCase() !== "REOPEN") redirect(`/admin/case/${id}?reopen=confirm`);
+  const sql = await db();
+  await sql`delete from submissions where case_id = ${id} and source = ${source}`;
+  await sql`update cases set status = 'collecting' where id = ${id} and status = 'ready'`;
+  await audit(id, "admin", `reopened:${source}`);
+  redirect(`/admin/case/${id}?updated=1`);
+}
+

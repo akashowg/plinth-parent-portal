@@ -72,3 +72,35 @@ export async function notifyAdmin(subject: string, text: string) {
     console.error("Admin notification failed", e);
   }
 }
+
+/**
+ * Safeguarding alert to the named contact (SAFEGUARDING_EMAIL, else ADMIN_EMAIL, else CONTACT_EMAIL).
+ * Carries the case reference and trigger codes only — never the child's words.
+ */
+export async function notifySafeguarding(ref: string, lines: string[], adminUrl: string) {
+  const to = optionalEnv("SAFEGUARDING_EMAIL") ?? optionalEnv("ADMIN_EMAIL") ?? optionalEnv("CONTACT_EMAIL");
+  if (!to) {
+    console.error(`SAFEGUARDING ALERT for ${ref} could not be emailed: no SAFEGUARDING_EMAIL, ADMIN_EMAIL or CONTACT_EMAIL set.`);
+    return { ok: false };
+  }
+  const text = [
+    `Case ${ref} has safeguarding triggers that need a person to act.`,
+    "",
+    ...lines.map((l) => `• ${l}`),
+    "",
+    `Open the case (sign in first): ${adminUrl}`,
+    "",
+    "Record what you did on the case page. The Studio export stays locked until every trigger is actioned.",
+    "This email deliberately contains no answers.",
+  ].join("\n");
+  try {
+    return await sendMail({ to, subject: `PLINTH HDI safeguarding: case ${ref} needs review within 48 hours`, text });
+  } catch (e) {
+    console.error("Safeguarding notification failed", e);
+    return { ok: false };
+  }
+}
+
+export function safeguardingContactName(): string {
+  return optionalEnv("SAFEGUARDING_CONTACT_NAME") ?? "Akash Bhattacharya, PLINTH HDI reviewer";
+}

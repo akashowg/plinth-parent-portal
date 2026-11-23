@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import type { Lang } from "./questions";
+import type { Lang } from "./instrument/types";
 
 export async function getLang(): Promise<Lang> {
   const v = (await cookies()).get("lang")?.value;
