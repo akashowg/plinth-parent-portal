@@ -70,6 +70,18 @@ export const U = {
     en: "Your words are turned into text by Sarvam AI, an Indian speech service, while you speak. The audio passes through PLINTH only to be transcribed, and nobody keeps a recording. Only the text you check and confirm is saved.",
     hi: "आप बोलते हैं, उसी समय Sarvam AI, एक भारतीय वाक् सेवा, आपके शब्दों को लिखित रूप में बदलती है। ऑडियो केवल लिखित रूप में बदलने के लिए PLINTH से होकर जाता है, और कोई भी रिकॉर्डिंग नहीं रखता। केवल वही लिखित उत्तर सहेजा जाता है जिसे आप जाँचकर पुष्टि करते हैं।",
   },
+  vNoticeFallback: {
+    en: "If Sarvam is unavailable, your browser’s speech service (Google or Apple) takes over automatically.",
+    hi: "यदि Sarvam उपलब्ध न हो, तो आपके ब्राउज़र की वाक् सेवा (Google या Apple) अपने-आप काम संभाल लेती है।",
+  },
+  vSwitched: {
+    en: "Sarvam is unavailable, so your browser’s speech service has taken over. Keep speaking. If your last sentence is missing, say it again.",
+    hi: "Sarvam उपलब्ध नहीं है, इसलिए आपके ब्राउज़र की वाक् सेवा ने काम संभाल लिया है। बोलते रहें। यदि आपका आख़िरी वाक्य छूट गया हो, तो उसे फिर से बोलें।",
+  },
+  vSwitchedNone: {
+    en: "Voice typing is unavailable in this browser right now. Check anything already heard, then type the rest.",
+    hi: "इस ब्राउज़र में अभी बोलकर लिखना उपलब्ध नहीं है। जो सुना जा चुका है उसे जाँचें, फिर बाक़ी टाइप करें।",
+  },
   vFinishing: { en: "Finishing the last words…", hi: "आख़िरी शब्द पूरे किए जा रहे हैं…" },
   vLimitHour: {
     en: "Voice typing has reached its limit for this hour. Please type, or try again later.",

@@ -133,6 +133,15 @@ create table if not exists stt_usage (
   primary key (key_hash, hour)
 );
 
+-- One row: set when Sarvam rejects the key or the credits run out, so every form falls back to the
+-- browser's own speech engine until the pause ends (re-checked automatically after it).
+create table if not exists stt_state (
+  id integer primary key default 1 check (id = 1),
+  paused_until timestamptz,
+  reason text,
+  alerted_at timestamptz
+);
+
 create table if not exists audit (
   id bigserial primary key,
   case_id uuid,

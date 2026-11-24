@@ -1,5 +1,5 @@
 import InstrumentForm from "@/components/InstrumentForm";
-import { sttEnabled } from "@/lib/stt";
+import { sttAvailable } from "@/lib/stt";
 import { caseByToken, decodeCase, submittedSources } from "@/lib/cases";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
@@ -40,7 +40,7 @@ export default async function TeacherForm({ params }: { params: Promise<{ token:
       <h1>{t(lang, "teacherTitle")}</h1>
       <p className="lead">{t(lang, "teacherLead")}</p>
       <InstrumentForm
-        serverStt={sttEnabled()}
+        serverStt={await sttAvailable()}
         def={def}
         lang={lang}
         dict={formDict(def, lang)}

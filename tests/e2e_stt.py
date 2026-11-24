@@ -5,7 +5,7 @@ os.environ.setdefault("ADMIN_PASSWORD", "x")
 src = open("/home/claude/e2e/e2e_v2.py").read()
 exec(src[: src.index("def action_all")])
 exec(src[src.index("def start_case"): src.index("\n", src.index("return ctx, page, links")) + 1])
-exec(open("/home/claude/e2e/e2e_voice.py").read().split("posted = []")[0].split("MOCK = ")[0].split("from playwright")[0])
+exec(open("/home/claude/repo-clone/tests/e2e_voice.py").read().split("posted = []")[0].split("MOCK = ")[0].split("from playwright")[0])
 from playwright.sync_api import sync_playwright
 LOG = "/home/claude/stt/requests.jsonl"
 def reqs():

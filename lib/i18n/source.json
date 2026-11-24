@@ -934,5 +934,8 @@
  "Voice typing is not available on this link right now. Please type your answer.",
  "The speech service did not answer. Please try again, or type your answer.",
  "Version 4 · 24 November 2026",
- "If you choose to speak an answer instead of typing it, the speech is turned into text by Sarvam AI, an Indian speech service, or, where that is not available, by your browser’s own speech service (Google on Android and Chrome, Apple on iPhone and Mac). With Sarvam, short pieces of audio pass through PLINTH’s server to Sarvam and come back as text; neither PLINTH nor Sarvam keeps the audio. Only the text you check and confirm is saved. The camera option shows you a mirror of yourself and is not recorded."
+ "If you choose to speak an answer instead of typing it, the speech is turned into text by Sarvam AI, an Indian speech service, or, where that is not available, by your browser’s own speech service (Google on Android and Chrome, Apple on iPhone and Mac). With Sarvam, short pieces of audio pass through PLINTH’s server to Sarvam and come back as text; neither PLINTH nor Sarvam keeps the audio. Only the text you check and confirm is saved. The camera option shows you a mirror of yourself and is not recorded.",
+ "If Sarvam is unavailable, your browser’s speech service (Google or Apple) takes over automatically.",
+ "Sarvam is unavailable, so your browser’s speech service has taken over. Keep speaking. If your last sentence is missing, say it again.",
+ "Voice typing is unavailable in this browser right now. Check anything already heard, then type the rest."
 ]

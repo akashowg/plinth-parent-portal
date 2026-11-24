@@ -7,10 +7,12 @@ import { PauseChunker, type Piece } from "@/components/voice-capture";
 /**
  * Speak (or speak on camera) instead of typing a written answer.
  *
- * Two engines. With `server` set (SARVAM_API_KEY configured), speech is cut into short pieces at natural
- * pauses and each piece goes through /api/transcribe to Sarvam AI (India), so text appears while the person
- * is still talking; audio is held in memory only and never stored. Without it, the browser's own speech
- * service is used (Google on Chrome and Android, Apple on Safari). Either way the only thing that reaches
+ * Two engines. With `server` set (Sarvam configured and not paused), speech is cut into short pieces at
+ * natural pauses and each piece goes through /api/transcribe to Sarvam AI (India), so text appears while the
+ * person is still talking; audio is held in memory only and never stored. Otherwise — or the moment Sarvam
+ * fails (credits used up, key rejected, hourly limit, no answer after a retry) — the browser's own speech
+ * service takes over mid-answer (Google on Chrome and Android, Apple on Safari), keeping what was already
+ * heard, and every later answer on the page starts on it. Either way the only thing that reaches
  * the form is text the person has read, corrected and confirmed. In video mode the camera feeds a local
  * mirror only; its frames never leave the page and the tracks stop on finish.
  */
@@ -37,10 +39,11 @@ function recognizer(): RecCtor | null {
 
 const MAX_MS = 3 * 60 * 1000;
 /** Shared across every answer on the page: the notice is shown once, and the chosen language is remembered. */
-const page = { noticeSeen: false, speechLang: "" };
+const page = { noticeSeen: false, speechLang: "", fallback: false };
 
 type Mode = "audio" | "video";
 type Phase = "idle" | "notice" | "live" | "finishing" | "review";
+type Engine = "server" | "browser";
 type UU = (k: string) => string;
 
 /** Join the final pieces of one recognition session, dropping pieces Android repeats cumulatively. */
@@ -102,11 +105,13 @@ export default function VoiceAnswer({
   const pieces = useRef<(string | null)[]>([]);
   const gen = useRef(0);
   const langRef = useRef(speechLang);
+  const engine = useRef<Engine>("browser");
+  const mic = useRef<MediaStream | null>(null);
   const [, setTick] = useState(0);
 
   useEffect(() => {
     const media = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
-    setSupported(server ? media && typeof window.AudioContext !== "undefined" : !!recognizer());
+    setSupported((!!server && media && typeof window.AudioContext !== "undefined") || !!recognizer());
   }, [server]);
   useEffect(() => {
     langRef.current = speechLang;
@@ -142,11 +147,17 @@ export default function VoiceAnswer({
     if (video.current) video.current.srcObject = null;
   }
 
+  function stopServer() {
+    void chunker.current?.close();
+    chunker.current = null;
+    mic.current?.getTracks().forEach((tr) => tr.stop());
+    mic.current = null;
+  }
+
   function teardown() {
     want.current = false;
     gen.current++;
-    void chunker.current?.close();
-    chunker.current = null;
+    stopServer();
     try {
       rec.current?.abort();
     } catch {}
@@ -210,7 +221,7 @@ export default function VoiceAnswer({
   function toReview() {
     want.current = false;
     stopCamera();
-    const text = join(committedRef.current, sessionText.current);
+    const text = join(heard(), join(committedRef.current, sessionText.current));
     sessionText.current = "";
     setDraft(text);
     setPhase(text ? "review" : "idle");
@@ -232,6 +243,7 @@ export default function VoiceAnswer({
     page.speechLang = speechLang;
     committedRef.current = "";
     sessionText.current = "";
+    pieces.current = [];
     setCommitted("");
     setLive({ final: "", interim: "" });
     setElapsed(0);
@@ -244,10 +256,17 @@ export default function VoiceAnswer({
         setMode("audio");
       }
     }
+    engine.current = useServer() ? "server" : "browser";
+    if (engine.current === "browser" && !recognizer()) {
+      stopCamera();
+      setNote(uu("vSwitchedNone"));
+      setPhase("idle");
+      return;
+    }
     want.current = true;
     startedAt.current = Date.now();
     setPhase("live");
-    if (server) await listenServer(m);
+    if (engine.current === "server") await listenServer(m);
     else listen(speechLang);
   }
 
@@ -256,9 +275,9 @@ export default function VoiceAnswer({
     const my = ++gen.current;
     pieces.current = [];
     setTick((n) => n + 1);
-    let mic: MediaStream;
+    let input: MediaStream;
     try {
-      mic = await navigator.mediaDevices.getUserMedia({
+      input = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
     } catch {
@@ -267,13 +286,30 @@ export default function VoiceAnswer({
       setPhase("idle");
       return;
     }
-    if (my !== gen.current) {
-      mic.getTracks().forEach((t) => t.stop());
+    if (my !== gen.current || engine.current !== "server") {
+      input.getTracks().forEach((t) => t.stop());
       return;
     }
-    if (m === "video" && stream.current) mic.getTracks().forEach((t) => stream.current!.addTrack(t));
-    else stream.current = mic;
-    chunker.current = new PauseChunker(mic, (p) => send(p, my));
+    mic.current = input;
+    if (m === "audio") stream.current = input;
+    chunker.current = new PauseChunker(input, (p) => send(p, my));
+  }
+
+  /** Sarvam is out for now: keep what it already heard and carry on with the browser's own engine. */
+  function fallBack() {
+    if (engine.current !== "server") return;
+    page.fallback = true;
+    engine.current = "browser";
+    stopServer();
+    setTick((n) => n + 1);
+    if (!want.current) return; // already finishing: the review uses what was heard
+    if (recognizer()) {
+      setNote(uu("vSwitched"));
+      listen(langRef.current);
+    } else {
+      setNote(uu("vSwitchedNone"));
+      void finishServer();
+    }
   }
 
   async function send(p: Piece, my: number) {
@@ -285,16 +321,29 @@ export default function VoiceAnswer({
     fd.append("kind", server!.kind);
     if (server!.token) fd.append("token", server!.token);
     let text = "";
-    try {
-      const res = await fetch("/api/transcribe", { method: "POST", body: fd });
-      if (res.ok) text = ((await res.json()) as { text?: string }).text ?? "";
-      else setNote(uu(res.status === 429 ? "vLimitHour" : res.status === 401 ? "vExpired" : "vServerBusy"));
-    } catch {
-      setNote(uu("vNetwork"));
+    let fail: "fallback" | "auth" | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+        if (res.ok) {
+          text = ((await res.json()) as { text?: string }).text ?? "";
+          fail = null;
+          break;
+        }
+        if (res.status === 401) fail = "auth";
+        else if (res.status === 503 || res.status === 429) fail = "fallback"; // off, paused, no credits, hourly limit
+        else fail = attempt ? "fallback" : null; // slow or failing: one more try, then switch
+      } catch {
+        fail = attempt ? "fallback" : null;
+      }
+      if (fail || my !== gen.current) break;
+      await new Promise((r) => setTimeout(r, 700));
     }
     if (my !== gen.current) return;
     pieces.current[i] = text;
     setTick((n) => n + 1);
+    if (fail === "auth") setNote(uu("vExpired"));
+    if (fail === "fallback") fallBack();
   }
 
   const heard = () => join("", pieces.current.filter((t): t is string => !!t).join(" "));
@@ -303,8 +352,7 @@ export default function VoiceAnswer({
   async function finishServer() {
     const my = gen.current;
     chunker.current?.flush();
-    await chunker.current?.close();
-    chunker.current = null;
+    stopServer();
     stopCamera();
     setPhase("finishing");
     const until = Date.now() + 25_000;
@@ -317,7 +365,7 @@ export default function VoiceAnswer({
   }
 
   function finish() {
-    if (server) {
+    if (engine.current === "server") {
       void finishServer();
       return;
     }
@@ -336,7 +384,7 @@ export default function VoiceAnswer({
   function switchLang(code: string) {
     setSpeechLang(code);
     page.speechLang = code;
-    if (!server && phase === "live" && rec.current) {
+    if (engine.current === "browser" && phase === "live" && rec.current) {
       const r = rec.current;
       rec.current = null;
       r.onend = null;
@@ -362,6 +410,8 @@ export default function VoiceAnswer({
     setPhase("idle");
     setNote(null);
   }
+
+  const useServer = () => !!server && !page.fallback && typeof window !== "undefined" && typeof window.AudioContext !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
   if (supported === null) return null;
   if (!supported) return <p className="small muted voice-tip">{uu("vUnsupported")}</p>;
@@ -399,7 +449,8 @@ export default function VoiceAnswer({
       {phase === "notice" && (
         <div className="voice-panel" role="dialog" aria-label={uu("vNoticeTitle")}>
           <p className="voice-title">{uu("vNoticeTitle")}</p>
-          <p>{uu(server ? "vNoticeServer" : "vNotice")}</p>
+          <p>{uu(useServer() ? "vNoticeServer" : "vNotice")}</p>
+          {useServer() && recognizer() && <p>{uu("vNoticeFallback")}</p>}
           {mode === "video" && <p>{uu("vNoticeVideo")}</p>}
           {langSelect}
           <div className="voice-row">
@@ -427,8 +478,8 @@ export default function VoiceAnswer({
             </figure>
           )}
           <p className="voice-text" aria-live="polite" lang={speechLang}>
-            {server ? heard() : join(committed, live.final)}{" "}
-            <span className="voice-interim">{server ? (pending() ? "…" : "") : live.interim}</span>
+            {join(heard(), join(committed, live.final))}{" "}
+            <span className="voice-interim">{pending() ? "…" : live.interim}</span>
           </p>
           {langSelect}
           <div className="voice-row">

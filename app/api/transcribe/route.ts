@@ -3,7 +3,7 @@ import { caseByToken } from "@/lib/cases";
 import { lookupHash } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { parentCaseId } from "@/lib/session";
-import { SttError, sttEnabled, transcribe } from "@/lib/stt";
+import { pauseStt, SttError, sttAvailable, sttConfigured, transcribe } from "@/lib/stt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,10 +25,18 @@ function wavSeconds(buf: ArrayBuffer): number | null {
   return (buf.byteLength - 44) / (rate * 2);
 }
 
+/**
+ * Replies the voice panel acts on:
+ *   200 {text}                      — words for this piece
+ *   503 {error:"fallback"}          — Sarvam is off, paused or out of credits: switch to the browser engine now
+ *   429 {error:"limit"}             — this form's hourly allowance is used: switch to the browser engine
+ *   502 {error:"upstream"}          — Sarvam slow or failing: retry once, then switch
+ *   401 {error:"auth"} / 400 {error:"bad"}
+ */
 const no = (status: number, error: string) => NextResponse.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function POST(req: NextRequest) {
-  if (!sttEnabled()) return no(503, "off");
+  if (!sttConfigured()) return no(503, "fallback");
   let fd: FormData;
   try {
     fd = await req.formData();
@@ -56,6 +64,8 @@ export async function POST(req: NextRequest) {
   const secs = wavSeconds(bytes);
   if (secs === null || secs < 0.3 || secs > 30) return no(400, "bad");
 
+  if (!(await sttAvailable())) return no(503, "fallback");
+
   const sql = await db();
   const key = lookupHash(`stt:${who}`);
   const [row] = await sql<{ seconds: number }[]>`
@@ -70,8 +80,12 @@ export async function POST(req: NextRequest) {
     const text = await transcribe(new Blob([bytes], { type: "audio/wav" }), lang);
     return NextResponse.json({ text }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
-    const status = e instanceof SttError ? e.status : 502;
-    console.error("transcribe failed", status); // never log audio or words
-    return no(status === 429 ? 429 : 502, "upstream");
+    const kind = e instanceof SttError ? e.kind : "down";
+    console.error("transcribe failed", kind, e instanceof Error ? e.message : ""); // never log audio or words
+    if (kind === "account") {
+      await pauseStt(e instanceof Error ? e.message : "account");
+      return no(503, "fallback");
+    }
+    return no(502, "upstream");
   }
 }
