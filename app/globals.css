@@ -5,9 +5,9 @@
  * Noto for the other scripts. Controls are square-edged; structure comes from hairline rules, not boxes.
  */
 :root {
-  --navy: #0d2344;
-  --navy-2: #16305a;
-  --navy-deep: #091a34;
+  --navy: #121b2c;
+  --navy-2: #1e2c45;
+  --navy-deep: #0b111d;
   --paper: #ffffff;
   --fog: #eef1f4;
   --fog-2: #e2e7ec;
@@ -17,8 +17,8 @@
   --mid: #6d7886;
   --line: #dde2e8;
   --line-strong: #c3cad3;
-  --brass: #b08f4a;
-  --brass-soft: #d9c49a;
+  --brass: #be8f48;
+  --brass-soft: #dcc59b;
   --teal: #2e6f73;
   --good: #2b6e49;
   --warn: #a8661f;
@@ -55,7 +55,7 @@ img { max-width: 100%; }
 .site-head { border-bottom: 1px solid var(--line); background: var(--paper); }
 .head-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 1200px; margin: 0 auto; padding: 18px var(--gutter); }
 .brand { color: #13253d; display: block; line-height: 0; }
-.brand svg { display: block; height: 46px; width: auto; }
+.brand svg { display: block; height: 62px; width: auto; }
 .head-right { display: flex; align-items: center; gap: 24px; }
 .portal-label { font-size: 14px; color: var(--slate); }
 .lang {
@@ -270,7 +270,7 @@ details.danger .form { margin-top: 16px; }
 @media (max-width: 760px) {
   .pair, .grid-2 { grid-template-columns: 1fr; }
   .portal-label { display: none; }
-  .brand svg { height: 40px; }
+  .brand svg { height: 46px; }
   .foot-text { text-align: start; }
 }
 
@@ -338,7 +338,7 @@ details.danger .form { margin-top: 16px; }
 .lang-menu { position: relative; }
 .lang-menu summary { list-style: none; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
 .lang-menu summary::-webkit-details-marker { display: none; }
-.lang-menu ul { position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 20; margin: 0; padding: 6px; list-style: none; min-width: 230px; background: var(--paper); border: 1px solid var(--line-strong); border-top: 2px solid var(--navy); box-shadow: 0 16px 40px rgba(13, 35, 68, .14); }
+.lang-menu ul { position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 20; margin: 0; padding: 6px; list-style: none; min-width: 230px; background: var(--paper); border: 1px solid var(--line-strong); border-top: 2px solid var(--navy); box-shadow: 0 16px 40px rgba(18, 27, 44, .14); }
 .lang-menu li a { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; color: var(--navy); text-decoration: none; }
 .lang-menu li a:hover, .lang-menu li a[aria-current] { background: var(--fog); }
 .lang-menu .eng { color: var(--mid); font-size: 12px; align-self: center; }

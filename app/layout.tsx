@@ -34,7 +34,6 @@ export const metadata: Metadata = {
   description:
     "Consent and intake for the PLINTH Human Development Intelligence dossier.",
   robots: { index: false, follow: false },
-  icons: { icon: "/plinth-logo-icon-navy.svg" },
 };
 
 export const viewport: Viewport = {
@@ -55,7 +54,7 @@ export default async function RootLayout({
         <header className="site-head">
           <div className="head-inner">
             <a href="/" className="brand" aria-label="PLINTH HDI — home">
-              <HdiLockup height={46} />
+              <HdiLockup height={62} />
             </a>
             <div className="head-right">
               <span className="portal-label">{t(lang, "portal")}</span>
