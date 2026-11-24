@@ -93,6 +93,10 @@ export const D = {
   },
   closingLine: { en: "Beginning takes about two minutes.", hi: "शुरू करने में लगभग दो मिनट लगते हैं।" },
 
+  bandAParentNote: {
+    en: "This page is for the adult who reads the questions to your child, not for you. For children aged 6 to 10, a trained adult who is not a parent (a school counsellor, a teacher other than the one filling the teacher form, or a PLINTH reviewer) asks the questions and enters your child’s answers. Please send this link to that person.",
+    hi: "यह पन्ना उस वयस्क के लिए है जो आपके बच्चे को प्रश्न पढ़कर सुनाते हैं, आपके लिए नहीं। 6 से 10 वर्ष के बच्चों के लिए, एक प्रशिक्षित वयस्क जो माता-पिता नहीं हैं (स्कूल काउंसलर, शिक्षक फ़ॉर्म भरने वाले शिक्षक के अलावा कोई अन्य शिक्षक, या PLINTH समीक्षक) प्रश्न पूछते हैं और आपके बच्चे के उत्तर दर्ज करते हैं। कृपया यह लिंक उन्हें भेजें।",
+  },
   /* start */
   startTitle: { en: "Start your child’s profile", hi: "अपने बच्चे की प्रोफ़ाइल शुरू करें" },
   startLead: {

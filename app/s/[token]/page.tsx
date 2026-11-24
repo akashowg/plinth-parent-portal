@@ -64,6 +64,11 @@ export default async function StudentForm({ params }: { params: Promise<{ token:
     <div className="wrap">
       <span className="kicker">PLINTH · {first}</span>
       <h1>{bandA ? t(lang, "adminTitle") : t(lang, "studentTitle")}</h1>
+      {bandA && parentHere && (
+        <p className="notice" role="note" style={{ marginBottom: 24 }}>
+          {t(lang, "bandAParentNote")}
+        </p>
+      )}
       {!bandA && <p className="lead">{t(lang, "studentHello")}</p>}
       <InstrumentForm
         def={def}
