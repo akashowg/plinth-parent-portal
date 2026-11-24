@@ -5,6 +5,7 @@ import { discardDraft, saveDraft, submitInstrument, unlockDraft } from "@/app/in
 import { ANCHORS } from "@/lib/instrument/scales";
 import type { Answer, Answers, FormDef, Item, Lang, Opt } from "@/lib/instrument/types";
 import { u, type UKey } from "@/lib/instrument/ui";
+import VoiceAnswer from "@/components/VoiceAnswer";
 import { chosenSubjects, gridKeys, isVisible, SKIP, textLength, validateSection, type Problem } from "@/lib/instrument/validate";
 
 type DraftData = { answers: Answers; timings: Record<string, number>; step: number };
@@ -468,6 +469,7 @@ function Field({
         ) : (
           <>
             <textarea id={`in-${item.k}`} rows={5} maxLength={4000} value={text} onChange={(e) => set(item.k, e.target.value)} />
+            <VoiceAnswer lang={lang} uu={(k) => uu(k as UKey)} current={text} onConfirm={(t) => set(item.k, t)} />
             <div className="q-foot">
               <span className={`small ${n > 0 && m < n ? "muted" : "ok"}`}>
                 {n > 0 ? uu("chars", { m, n }) : uu("charsFree", { m })}

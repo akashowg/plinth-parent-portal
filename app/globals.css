@@ -367,3 +367,33 @@ html[lang="ur"] :is(.statement, .closing-main p) { font-size: clamp(20px, 2.2vw,
 html[lang="ur"] :is(.lead, .tri-label, .tri-core, .terms dd, .index p, .section-head p) { line-height: 2; }
 html[lang="ur"] .tri-label b { line-height: 1.8; }
 html:is([lang="ta"], [lang="ml"]) .hero h1 { font-size: clamp(28px, 3.2vw, 40px); max-width: none; }
+
+/* ---------- speak instead of typing */
+.voice { display: grid; gap: 10px; }
+.voice-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.voice-btn {
+  appearance: none; display: inline-flex; align-items: center; gap: 8px; min-height: 40px;
+  padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--paper);
+  color: var(--navy); font: inherit; font-size: 14px; font-weight: 550; cursor: pointer;
+}
+.voice-btn:hover { border-color: var(--navy); background: var(--fog); }
+.voice-panel { display: grid; gap: 12px; padding: 18px 20px; background: var(--fog); border-top: 2px solid var(--navy); }
+.voice-panel p { margin: 0; color: var(--slate); font-size: 15px; }
+.voice-panel .voice-title { color: var(--navy); font-weight: 600; font-size: 16px; }
+.voice-panel textarea { background: var(--paper); }
+.voice-lang { display: grid; gap: 4px; font-size: 13px; color: var(--slate); max-width: 280px; }
+.voice-lang select { padding: 8px 10px; font-size: 15px; }
+.voice-status { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--navy); font-weight: 550; }
+.voice-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--risk); }
+.voice-clock { margin-inline-start: auto; font-variant-numeric: tabular-nums; color: var(--slate); font-weight: 400; }
+.voice-text { min-height: 3.2em; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line); color: var(--ink) !important; font-size: 16px !important; line-height: 1.6; }
+.voice-interim { color: var(--mid); }
+.voice-mirror { margin: 0; display: grid; gap: 6px; max-width: 320px; }
+.voice-mirror video { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--navy-deep); transform: scaleX(-1); }
+.voice-mirror figcaption { font-size: 13px; color: var(--slate); }
+.voice-note { margin: 0; color: var(--slate); }
+.voice-tip { margin: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .voice-dot { animation: voice-pulse 1.4s ease-in-out infinite; }
+}
+@keyframes voice-pulse { 50% { opacity: .35; } }

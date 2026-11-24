@@ -102,6 +102,21 @@ Studio (on the Mac) recognises a v2.0 export automatically (`plinth/ledger.py`, 
 
 The item bank lives in `lib/instrument/`: `student.ts`, `parent.ts`, `teacher.ts` (English and Hindi side by side), `constructs.ts` (which items feed which construct, and the HDI-7 / PIC-5 mapping), `scoring.ts` (validity and ledger), `derived.ts`, `safeguarding.ts`. Item keys are permanent: never reuse a key for a different question — retire it and add a new one, then change `INSTRUMENT_VERSION` in `forms.ts`. Interface text lives in `lib/i18n.ts` and `lib/instrument/ui.ts`.
 
+## Speaking instead of typing
+
+Every written answer in the parent, child and teacher forms has **Speak your answer** and **Speak on video**.
+
+- Speech is turned into text by the browser's own speech service (Web Speech API: Google on Chrome and Android,
+  Apple on Safari). PLINTH never receives audio or video: there is no MediaRecorder and no upload.
+- The person sees the words appear, corrects them, and presses **Add to my answer**. Only that text is saved,
+  appended to anything already typed, and it goes through the same safeguarding scan as typed text.
+- Video mode opens the front camera as a local mirror only (no audio track); the camera switches off on Stop.
+- The speaking language defaults to the page language and can be changed (all 11 languages, `xx-IN` locales).
+- Browsers without speech recognition (Firefox, some in-app browsers) show a tip to use the keyboard's
+  microphone key instead of dead buttons.
+- `Permissions-Policy` allows `microphone=(self)` and `camera=(self)`; everything else stays blocked.
+- Test: `tests/e2e_voice.py` (scripted speech engine and fake camera).
+
 ## Languages
 
 English and Hindi are written side by side in the code. The other nine languages are catalogs in `lib/i18n/catalogs/<code>.json` — arrays aligned to `lib/i18n/source.json`, which is **append-only** (a string keeps its index forever, so changing or adding text never shifts existing translations). Anything without a translation falls back to English.

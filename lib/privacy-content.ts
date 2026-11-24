@@ -5,7 +5,7 @@ export function privacyContent(lang: "en" | "hi", contact: string): { title: str
   if (lang === "hi") {
     return {
       title: "गोपनीयता सूचना",
-      version: "संस्करण 2 · 23 नवंबर 2026",
+      version: "संस्करण 3 · 24 नवंबर 2026",
       blocks: [
         { h: "हम कौन हैं", p: [`PLINTH Network यह पोर्टल चलाता है और आपकी दी गई जानकारी के लिए ज़िम्मेदार है। संपर्क: ${contact}`] },
         {
@@ -29,6 +29,7 @@ export function privacyContent(lang: "en" | "hi", contact: string): { title: str
           h: "जानकारी कौन प्रोसेस करता है",
           p: [
             "PLINTH के सेवा प्रदाता: होस्टिंग (Vercel), डेटाबेस, ईमेल (Google Gmail), और डोज़ियर का प्रारूप तैयार करने के लिए AI मॉडल (Anthropic का Claude)। इनमें से कुछ भारत के बाहर जानकारी प्रोसेस कर सकते हैं।",
+            "यदि आप टाइप करने के बजाय उत्तर बोलना चुनते हैं, तो आपके ब्राउज़र की अपनी वाक् सेवा (Android और Chrome पर Google, iPhone और Mac पर Apple) बोली को लिखित रूप में बदलती है। PLINTH को कोई ऑडियो या वीडियो रिकॉर्डिंग नहीं मिलती और न ही रखी जाती है; केवल वही लिखित उत्तर सहेजा जाता है जिसे आप जाँचकर पुष्टि करते हैं। कैमरा विकल्प केवल आपको आपकी छवि दिखाता है और रिकॉर्ड नहीं होता।",
             "हर डोज़ियर आपको भेजे जाने से पहले PLINTH का एक व्यक्ति पढ़ता और स्वीकृत करता है।",
             "आपके उत्तर आपके बच्चे के स्कूल के साथ साझा नहीं किए जाते, नीचे दी गई सुरक्षा स्थिति को छोड़कर। शिक्षक आपके उत्तर नहीं देखते, आप शिक्षक के या अपने बच्चे के उत्तर नहीं देखते, और बच्चा आपके उत्तर नहीं देखता।",
           ],
@@ -59,7 +60,7 @@ export function privacyContent(lang: "en" | "hi", contact: string): { title: str
   }
   return {
     title: "Privacy notice",
-    version: "Version 2 · 23 November 2026",
+    version: "Version 3 · 24 November 2026",
     blocks: [
       { h: "Who we are", p: [`PLINTH Network runs this portal and is responsible for the information you give it. Contact: ${contact}`] },
       {
@@ -84,6 +85,7 @@ export function privacyContent(lang: "en" | "hi", contact: string): { title: str
         p: [
           "PLINTH’s service providers: hosting (Vercel), the database, email (Google Gmail), and an AI model that drafts the dossier (Claude, by Anthropic). Some of them may process information outside India.",
           "A person at PLINTH reads and approves every dossier before it is sent to you.",
+          "If you choose to speak an answer instead of typing it, your browser’s own speech service (Google on Android and Chrome, Apple on iPhone and Mac) turns the speech into text. PLINTH never receives or keeps an audio or video recording; only the text you check and confirm is saved. The camera option shows you a mirror of yourself and is not recorded.",
           "Your answers are not shared with your child’s school, except as described under safeguarding below. The teacher does not see your answers; you do not see the teacher’s or your child’s; your child does not see yours.",
         ],
       },
