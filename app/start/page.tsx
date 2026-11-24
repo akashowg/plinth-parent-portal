@@ -6,6 +6,7 @@ import { getLang } from "@/lib/lang";
 import { t, type Key } from "@/lib/i18n";
 import { CLASS_OPTIONS } from "@/lib/instrument/forms";
 import { safeguardingContactName } from "@/lib/email";
+const EMAIL_PATTERN = String.raw`[^\s@]+@[^\s@]+\.[^\s@]{2,}`;
 
 export default async function Start() {
   const lang = await getLang();
@@ -48,7 +49,7 @@ export default async function Start() {
           <div className="grid-2">
             <label className="field">
               <span className="q-label">{t(lang, "email")} <span className="req">*</span></span>
-              <input type="email" name="email" required maxLength={254} autoComplete="email" inputMode="email" />
+              <input type="email" name="email" required pattern={EMAIL_PATTERN} title={t(lang, "errEmail")} maxLength={254} autoComplete="email" inputMode="email" />
               <span className="help">{t(lang, "emailHelp")}</span>
             </label>
             <label className="field">

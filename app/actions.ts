@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { audit, db } from "@/lib/db";
 import { caseRef, lookupHash, randomToken, safeEqual, seal, sixDigitCode } from "@/lib/crypto";
 import { devShowCodes, requireEnv } from "@/lib/env";
@@ -23,6 +23,20 @@ async function requestMeta() {
   return { ipHash: ip ? lookupHash("ip:" + ip) : null, ua: (h.get("user-agent") ?? "").slice(0, 300) };
 }
 
+/**
+ * Run a parent-facing action so that an unexpected failure (database, mail server, timeout) comes back
+ * as a visible message instead of a silent 500 that leaves the button looking dead. Redirects pass through.
+ */
+async function guarded(name: string, run: () => Promise<FormState>): Promise<FormState> {
+  try {
+    return await run();
+  } catch (e) {
+    unstable_rethrow(e);
+    console.error(`${name} failed`, e instanceof Error ? `${e.name}: ${e.message}` : e);
+    return { error: t(await getLang(), "errServer") };
+  }
+}
+
 async function issueCode(emailHash: string, email: string, caseId: string, purpose: "verify" | "login") {
   const sql = await db();
   const recent = await sql<{ n: number }[]>`
@@ -40,7 +54,11 @@ async function issueCode(emailHash: string, email: string, caseId: string, purpo
 }
 
 /* ------------------------------------------------------------------ start + consent */
-export async function startCase(_: FormState, fd: FormData): Promise<FormState> {
+export async function startCase(state: FormState, fd: FormData): Promise<FormState> {
+  return guarded("startCase", () => startCaseRun(state, fd));
+}
+
+async function startCaseRun(_: FormState, fd: FormData): Promise<FormState> {
   const lang = await getLang();
   const parent = {
     name: s(fd, "parentName"),
@@ -89,7 +107,11 @@ export async function startCase(_: FormState, fd: FormData): Promise<FormState> 
 }
 
 /* ------------------------------------------------------------------ verify code */
-export async function verifyCode(_: FormState, fd: FormData): Promise<FormState> {
+export async function verifyCode(state: FormState, fd: FormData): Promise<FormState> {
+  return guarded("verifyCode", () => verifyCodeRun(state, fd));
+}
+
+async function verifyCodeRun(_: FormState, fd: FormData): Promise<FormState> {
   const lang = await getLang();
   const caseId = s(fd, "c", 40);
   const code = s(fd, "code", 6).replace(/\D/g, "");
@@ -128,7 +150,11 @@ export async function verifyCode(_: FormState, fd: FormData): Promise<FormState>
 }
 
 /* ------------------------------------------------------------------ returning parent */
-export async function requestLogin(_: FormState, fd: FormData): Promise<FormState> {
+export async function requestLogin(state: FormState, fd: FormData): Promise<FormState> {
+  return guarded("requestLogin", () => requestLoginRun(state, fd));
+}
+
+async function requestLoginRun(_: FormState, fd: FormData): Promise<FormState> {
   const lang = await getLang();
   const email = s(fd, "email", 254).toLowerCase();
   if (!EMAIL_RE.test(email)) return { error: t(lang, "errEmail") };
@@ -150,7 +176,11 @@ export async function signOut() {
 }
 
 /* ------------------------------------------------------------------ withdrawal */
-export async function withdrawConsent(_: FormState, fd: FormData): Promise<FormState> {
+export async function withdrawConsent(state: FormState, fd: FormData): Promise<FormState> {
+  return guarded("withdrawConsent", () => withdrawConsentRun(state, fd));
+}
+
+async function withdrawConsentRun(_: FormState, fd: FormData): Promise<FormState> {
   const lang = await getLang();
   const id = await parentCaseId();
   if (!id) redirect("/login");

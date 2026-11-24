@@ -22,6 +22,9 @@ export async function sendMail(mail: Mail): Promise<{ ok: boolean; dev?: boolean
         port: Number(optionalEnv("SMTP_PORT") ?? 465),
         secure: (optionalEnv("SMTP_PORT") ?? "465") === "465",
         auth: { user: gmailUser, pass: gmailPass.replace(/\s+/g, "") },
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 15_000,
       });
       await transport.sendMail({
         from: optionalEnv("EMAIL_FROM") ?? `PLINTH HDI <${gmailUser}>`,

@@ -184,6 +184,10 @@ export const D = {
   errConsent: { en: "Please tick every consent point to continue.", hi: "आगे बढ़ने के लिए कृपया सहमति के सभी बिंदु चिह्नित करें।" },
   errEmail: { en: "Please enter a valid email address.", hi: "कृपया एक मान्य ईमेल पता दर्ज करें।" },
   errTooMany: { en: "Too many codes requested. Please wait an hour and try again.", hi: "बहुत अधिक कोड माँगे गए। कृपया एक घंटा रुककर फिर प्रयास करें।" },
+  errServer: {
+    en: "Something went wrong on our side. What you typed is still here. Please try again in a minute.",
+    hi: "हमारी ओर से कुछ गड़बड़ हो गई। आपने जो भरा है वह सुरक्षित है। कृपया एक मिनट बाद फिर प्रयास करें।",
+  },
   errMail: { en: "We could not send the email. Please check the address and try again.", hi: "ईमेल नहीं भेजा जा सका। कृपया पता जाँचकर फिर प्रयास करें।" },
   errGeneric: { en: "Something went wrong. Please try again.", hi: "कुछ गड़बड़ हुई। कृपया फिर प्रयास करें।" },
 
