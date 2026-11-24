@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LANGS } from "@/lib/i18n/langs";
+import { PauseChunker, type Piece } from "@/components/voice-capture";
 
 /**
  * Speak (or speak on camera) instead of typing a written answer.
  *
- * Speech becomes text through the browser's own speech service (Web Speech API: Google on Chrome and
- * Android, Apple on Safari). No MediaRecorder is used and nothing is uploaded to PLINTH: the only thing
- * that ever reaches the form is text the person has read, corrected and confirmed. In video mode the
- * camera feeds a local mirror only; its frames never leave the page and the tracks stop on finish.
+ * Two engines. With `server` set (SARVAM_API_KEY configured), speech is cut into short pieces at natural
+ * pauses and each piece goes through /api/transcribe to Sarvam AI (India), so text appears while the person
+ * is still talking; audio is held in memory only and never stored. Without it, the browser's own speech
+ * service is used (Google on Chrome and Android, Apple on Safari). Either way the only thing that reaches
+ * the form is text the person has read, corrected and confirmed. In video mode the camera feeds a local
+ * mirror only; its frames never leave the page and the tracks stop on finish.
  */
 
 type Rec = {
@@ -37,7 +40,7 @@ const MAX_MS = 3 * 60 * 1000;
 const page = { noticeSeen: false, speechLang: "" };
 
 type Mode = "audio" | "video";
-type Phase = "idle" | "notice" | "live" | "review";
+type Phase = "idle" | "notice" | "live" | "finishing" | "review";
 type UU = (k: string) => string;
 
 /** Join the final pieces of one recognition session, dropping pieces Android repeats cumulatively. */
@@ -67,12 +70,15 @@ export default function VoiceAnswer({
   current,
   onConfirm,
   maxLength = 4000,
+  server,
 }: {
   lang: string;
   uu: UU;
   current: string;
   onConfirm: (text: string) => void;
   maxLength?: number;
+  /** Present when server transcription is configured: who is speaking, for /api/transcribe to authorise. */
+  server?: { kind: "student" | "teacher" | "parent"; token?: string };
 }) {
   const [supported, setSupported] = useState<boolean | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -92,8 +98,19 @@ export default function VoiceAnswer({
   const stream = useRef<MediaStream | null>(null);
   const video = useRef<HTMLVideoElement | null>(null);
   const reviewBox = useRef<HTMLTextAreaElement | null>(null);
+  const chunker = useRef<PauseChunker | null>(null);
+  const pieces = useRef<(string | null)[]>([]);
+  const gen = useRef(0);
+  const langRef = useRef(speechLang);
+  const [, setTick] = useState(0);
 
-  useEffect(() => setSupported(!!recognizer()), []);
+  useEffect(() => {
+    const media = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
+    setSupported(server ? media && typeof window.AudioContext !== "undefined" : !!recognizer());
+  }, [server]);
+  useEffect(() => {
+    langRef.current = speechLang;
+  }, [speechLang]);
   useEffect(() => () => teardown(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // While listening: tick the timer, keep the child-form idle lock from firing, stop at the limit.
@@ -127,6 +144,9 @@ export default function VoiceAnswer({
 
   function teardown() {
     want.current = false;
+    gen.current++;
+    void chunker.current?.close();
+    chunker.current = null;
     try {
       rec.current?.abort();
     } catch {}
@@ -227,10 +247,80 @@ export default function VoiceAnswer({
     want.current = true;
     startedAt.current = Date.now();
     setPhase("live");
-    listen(speechLang);
+    if (server) await listenServer(m);
+    else listen(speechLang);
+  }
+
+  // ---- server engine: pieces cut at pauses, transcribed as they come
+  async function listenServer(m: Mode) {
+    const my = ++gen.current;
+    pieces.current = [];
+    setTick((n) => n + 1);
+    let mic: MediaStream;
+    try {
+      mic = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+    } catch {
+      setNote(uu("vDenied"));
+      stopCamera();
+      setPhase("idle");
+      return;
+    }
+    if (my !== gen.current) {
+      mic.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    if (m === "video" && stream.current) mic.getTracks().forEach((t) => stream.current!.addTrack(t));
+    else stream.current = mic;
+    chunker.current = new PauseChunker(mic, (p) => send(p, my));
+  }
+
+  async function send(p: Piece, my: number) {
+    const i = pieces.current.push(null) - 1;
+    setTick((n) => n + 1);
+    const fd = new FormData();
+    fd.append("audio", p.wav, "speech.wav");
+    fd.append("lang", langRef.current);
+    fd.append("kind", server!.kind);
+    if (server!.token) fd.append("token", server!.token);
+    let text = "";
+    try {
+      const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+      if (res.ok) text = ((await res.json()) as { text?: string }).text ?? "";
+      else setNote(uu(res.status === 429 ? "vLimitHour" : res.status === 401 ? "vExpired" : "vServerBusy"));
+    } catch {
+      setNote(uu("vNetwork"));
+    }
+    if (my !== gen.current) return;
+    pieces.current[i] = text;
+    setTick((n) => n + 1);
+  }
+
+  const heard = () => join("", pieces.current.filter((t): t is string => !!t).join(" "));
+  const pending = () => pieces.current.some((t) => t === null);
+
+  async function finishServer() {
+    const my = gen.current;
+    chunker.current?.flush();
+    await chunker.current?.close();
+    chunker.current = null;
+    stopCamera();
+    setPhase("finishing");
+    const until = Date.now() + 25_000;
+    while (pending() && Date.now() < until && my === gen.current) await new Promise((r) => setTimeout(r, 120));
+    if (my !== gen.current) return;
+    const text = heard();
+    setDraft(text);
+    setPhase(text ? "review" : "idle");
+    if (!text) setNote((n) => n ?? uu("vEmpty"));
   }
 
   function finish() {
+    if (server) {
+      void finishServer();
+      return;
+    }
     want.current = false;
     const r = rec.current;
     if (r) {
@@ -246,7 +336,7 @@ export default function VoiceAnswer({
   function switchLang(code: string) {
     setSpeechLang(code);
     page.speechLang = code;
-    if (phase === "live" && rec.current) {
+    if (!server && phase === "live" && rec.current) {
       const r = rec.current;
       rec.current = null;
       r.onend = null;
@@ -309,7 +399,7 @@ export default function VoiceAnswer({
       {phase === "notice" && (
         <div className="voice-panel" role="dialog" aria-label={uu("vNoticeTitle")}>
           <p className="voice-title">{uu("vNoticeTitle")}</p>
-          <p>{uu("vNotice")}</p>
+          <p>{uu(server ? "vNoticeServer" : "vNotice")}</p>
           {mode === "video" && <p>{uu("vNoticeVideo")}</p>}
           {langSelect}
           <div className="voice-row">
@@ -323,11 +413,11 @@ export default function VoiceAnswer({
         </div>
       )}
 
-      {phase === "live" && (
+      {(phase === "live" || phase === "finishing") && (
         <div className="voice-panel voice-live">
           <div className="voice-status">
             <span className="voice-dot" aria-hidden="true" />
-            <span>{uu("vListening")}</span>
+            <span>{uu(phase === "finishing" ? "vFinishing" : "vListening")}</span>
             <span className="voice-clock">{clock}</span>
           </div>
           {mode === "video" && (
@@ -337,11 +427,12 @@ export default function VoiceAnswer({
             </figure>
           )}
           <p className="voice-text" aria-live="polite" lang={speechLang}>
-            {join(committed, live.final)} <span className="voice-interim">{live.interim}</span>
+            {server ? heard() : join(committed, live.final)}{" "}
+            <span className="voice-interim">{server ? (pending() ? "…" : "") : live.interim}</span>
           </p>
           {langSelect}
           <div className="voice-row">
-            <button type="button" className="btn" onClick={finish}>
+            <button type="button" className="btn" onClick={finish} disabled={phase === "finishing"}>
               {uu("vStop")}
             </button>
             <button type="button" className="btn btn-quiet" onClick={discard}>

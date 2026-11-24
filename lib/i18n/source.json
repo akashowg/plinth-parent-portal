@@ -927,5 +927,12 @@
  "To speak instead of typing, use the microphone key on your phone’s keyboard.",
  "Version 3 · 24 November 2026",
  "If you choose to speak an answer instead of typing it, your browser’s own speech service (Google on Android and Chrome, Apple on iPhone and Mac) turns the speech into text. PLINTH never receives or keeps an audio or video recording; only the text you check and confirm is saved. The camera option shows you a mirror of yourself and is not recorded.",
- "This page is for the adult who reads the questions to your child, not for you. For children aged 6 to 10, a trained adult who is not a parent (a school counsellor, a teacher other than the one filling the teacher form, or a PLINTH reviewer) asks the questions and enters your child’s answers. Please send this link to that person."
+ "This page is for the adult who reads the questions to your child, not for you. For children aged 6 to 10, a trained adult who is not a parent (a school counsellor, a teacher other than the one filling the teacher form, or a PLINTH reviewer) asks the questions and enters your child’s answers. Please send this link to that person.",
+ "Your words are turned into text by Sarvam AI, an Indian speech service, while you speak. The audio passes through PLINTH only to be transcribed, and nobody keeps a recording. Only the text you check and confirm is saved.",
+ "Finishing the last words…",
+ "Voice typing has reached its limit for this hour. Please type, or try again later.",
+ "Voice typing is not available on this link right now. Please type your answer.",
+ "The speech service did not answer. Please try again, or type your answer.",
+ "Version 4 · 24 November 2026",
+ "If you choose to speak an answer instead of typing it, the speech is turned into text by Sarvam AI, an Indian speech service, or, where that is not available, by your browser’s own speech service (Google on Android and Chrome, Apple on iPhone and Mac). With Sarvam, short pieces of audio pass through PLINTH’s server to Sarvam and come back as text; neither PLINTH nor Sarvam keeps the audio. Only the text you check and confirm is saved. The camera option shows you a mirror of yourself and is not recorded."
 ]

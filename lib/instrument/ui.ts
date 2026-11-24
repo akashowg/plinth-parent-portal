@@ -66,6 +66,23 @@ export const U = {
     en: "To speak instead of typing, use the microphone key on your phone’s keyboard.",
     hi: "टाइप करने के बजाय बोलने के लिए, अपने फ़ोन के कीबोर्ड पर माइक्रोफ़ोन वाला बटन इस्तेमाल करें।",
   },
+  vNoticeServer: {
+    en: "Your words are turned into text by Sarvam AI, an Indian speech service, while you speak. The audio passes through PLINTH only to be transcribed, and nobody keeps a recording. Only the text you check and confirm is saved.",
+    hi: "आप बोलते हैं, उसी समय Sarvam AI, एक भारतीय वाक् सेवा, आपके शब्दों को लिखित रूप में बदलती है। ऑडियो केवल लिखित रूप में बदलने के लिए PLINTH से होकर जाता है, और कोई भी रिकॉर्डिंग नहीं रखता। केवल वही लिखित उत्तर सहेजा जाता है जिसे आप जाँचकर पुष्टि करते हैं।",
+  },
+  vFinishing: { en: "Finishing the last words…", hi: "आख़िरी शब्द पूरे किए जा रहे हैं…" },
+  vLimitHour: {
+    en: "Voice typing has reached its limit for this hour. Please type, or try again later.",
+    hi: "इस घंटे के लिए बोलकर लिखने की सीमा पूरी हो गई है। कृपया टाइप करें, या बाद में फिर प्रयास करें।",
+  },
+  vExpired: {
+    en: "Voice typing is not available on this link right now. Please type your answer.",
+    hi: "इस लिंक पर अभी बोलकर लिखना उपलब्ध नहीं है। कृपया उत्तर टाइप करें।",
+  },
+  vServerBusy: {
+    en: "The speech service did not answer. Please try again, or type your answer.",
+    hi: "वाक् सेवा से उत्तर नहीं मिला। कृपया फिर प्रयास करें, या उत्तर टाइप करें।",
+  },
   enjoy: { en: "How much do you enjoy it?", hi: "कितना पसंद है?" },
   ease: { en: "How easy does it feel?", hi: "कितना आसान लगता है?" },
   pickSubjectsFirst: { en: "Choose your subjects above first.", hi: "पहले ऊपर अपने विषय चुनें।" },

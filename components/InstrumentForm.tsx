@@ -18,6 +18,8 @@ type Props = {
   pinRequired?: boolean;
   /** Catalog subset for languages beyond English and Hindi. */
   dict?: Dict;
+  /** Server transcription (Sarvam) is configured: speak-to-text pieces go through /api/transcribe. */
+  serverStt?: boolean;
   /** Shown above the first section (assent, notice, administrator guidance). */
   preface?: ReactNode;
   done: ReactNode;
@@ -44,7 +46,8 @@ const WEAK_PINS = new Set(["1234", "4321", "0123", "1212", "2580", "1122", "1004
 const IDLE_MS = 2 * 60 * 1000;
 const HIDDEN_MS = 30 * 1000;
 
-export default function InstrumentForm({ def, lang, token, initial, preface, done, pinRequired, dict }: Props) {
+export default function InstrumentForm({ def, lang, token, initial, preface, done, pinRequired, dict, serverStt }: Props) {
+  const voice = serverStt ? { kind: def.source, token } : undefined;
   const startLocked = !!initial && "locked" in initial;
   const draft = !startLocked ? (initial as DraftData | null | undefined) : null;
   const [answers, setAnswers] = useState<Answers>(draft?.answers ?? {});
@@ -273,7 +276,7 @@ export default function InstrumentForm({ def, lang, token, initial, preface, don
 
       <div className="inst-items">
         {visible.map((item) => (
-          <Field key={item.k} item={item} def={def} lang={lang} dict={dict} answers={answers} set={set} problem={problemFor(item.k)} />
+          <Field key={item.k} item={item} def={def} lang={lang} dict={dict} answers={answers} set={set} problem={problemFor(item.k)} voice={voice} />
         ))}
         {pinRequired && !pin && step === 0 && (
           <div className={`q${pinError ? " q-bad" : ""}`} id="q-pin">
@@ -332,6 +335,7 @@ function Field({
   set,
   problem,
   dict,
+  voice,
 }: {
   item: Item;
   def: FormDef;
@@ -340,6 +344,7 @@ function Field({
   answers: Answers;
   set: (k: string, v: Answer | undefined) => void;
   problem?: Problem;
+  voice?: { kind: "student" | "teacher" | "parent"; token?: string };
 }) {
   const { L, uu } = useText(lang, dict);
   const v = answers[item.k];
@@ -469,7 +474,7 @@ function Field({
         ) : (
           <>
             <textarea id={`in-${item.k}`} rows={5} maxLength={4000} value={text} onChange={(e) => set(item.k, e.target.value)} />
-            <VoiceAnswer lang={lang} uu={(k) => uu(k as UKey)} current={text} onConfirm={(t) => set(item.k, t)} />
+            <VoiceAnswer lang={lang} uu={(k) => uu(k as UKey)} current={text} onConfirm={(t) => set(item.k, t)} server={voice} />
             <div className="q-foot">
               <span className={`small ${n > 0 && m < n ? "muted" : "ok"}`}>
                 {n > 0 ? uu("chars", { m, n }) : uu("charsFree", { m })}

@@ -125,6 +125,14 @@ create table if not exists reviews (
   at timestamptz not null default now()
 );
 
+create table if not exists stt_usage (
+  key_hash text not null,
+  hour timestamptz not null,
+  seconds real not null default 0,
+  requests integer not null default 0,
+  primary key (key_hash, hour)
+);
+
 create table if not exists audit (
   id bigserial primary key,
   case_id uuid,

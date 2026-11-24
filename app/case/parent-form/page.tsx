@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import InstrumentForm from "@/components/InstrumentForm";
+import { sttEnabled } from "@/lib/stt";
 import { decodeCase, getCase, submittedSources } from "@/lib/cases";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
@@ -28,6 +29,7 @@ export default async function ParentForm() {
       <span className="kicker">{t(lang, "parentFormTitle")} · {child.name}</span>
       <h1>{t(lang, "parentFormTitle")}</h1>
       <InstrumentForm
+        serverStt={sttEnabled()}
         def={def}
         lang={lang}
         dict={formDict(def, lang)}
