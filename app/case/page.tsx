@@ -1,10 +1,10 @@
 import { langInfo, type Lang } from "@/lib/i18n/langs";
+import { siteUrl } from "@/lib/site-url";
 import { redirect } from "next/navigation";
 import ActionForm from "@/components/ActionForm";
 import CopyButton from "@/components/CopyButton";
 import { signOut, withdrawConsent } from "@/app/actions";
 import { decodeCase, getCase, submittedSources } from "@/lib/cases";
-import { baseUrl } from "@/lib/env";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { parentCaseId } from "@/lib/session";
@@ -29,8 +29,8 @@ export default async function CasePage({ searchParams }: { searchParams: Promise
   const locked = c.status === "in_studio" || c.status === "delivered";
   const bandA = caseContext(c)?.band === "A";
 
-  const studentUrl = `${baseUrl()}/s/${tokens.student}`;
-  const teacherUrl = `${baseUrl()}/t/${tokens.teacher}`;
+  const studentUrl = `${await siteUrl()}/s/${tokens.student}`;
+  const teacherUrl = `${await siteUrl()}/t/${tokens.teacher}`;
   const wa = (msg: string, url: string) => `https://wa.me/?text=${encodeURIComponent(`${msg} ${url}`)}`;
   const verifiedOn = new Date(c.verified_at).toLocaleDateString(langInfo(lang).locale, {
     day: "numeric", month: "long", year: "numeric",

@@ -1,10 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
+import { siteUrl } from "@/lib/site-url";
 import { audit, db } from "@/lib/db";
 import { lookupHash, openWith, pinKey, seal, sealWith } from "@/lib/crypto";
 import { deviceHash } from "@/lib/instrument/device";
-import { baseUrl } from "@/lib/env";
 import { notifyAdmin, notifySafeguarding } from "@/lib/email";
 import { caseByToken, getCase, submittedSources, type CaseRow } from "@/lib/cases";
 import { parentCaseId } from "@/lib/session";
@@ -202,7 +202,7 @@ export async function submitInstrument(input: { source: Source; token?: string; 
     const lines = codes.map((code) => `${code} (${source}): ${SG_MEANING[code]}`);
     if (cats.length) lines.push(`Kinds of concern detected in written answers: ${cats.join("; ")}.`);
     const urgent = codes.some((x) => x === "SG-4U");
-    await notifySafeguarding(c.ref, lines, `${baseUrl()}/admin/case/${c.id}`, urgent);
+    await notifySafeguarding(c.ref, lines, `${await siteUrl()}/admin/case/${c.id}`, urgent);
   }
   await notifyAdmin(
     `PLINTH portal: ${source} form received for ${c.ref}`,

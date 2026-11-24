@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
+import { siteUrl } from "@/lib/site-url";
 import CopyButton from "@/components/CopyButton";
 import { adminActionSafeguard, adminEraseCase, adminReopenSource, adminSetStatus, adminSignOff } from "@/app/actions";
 import { ADMIN_STATUSES, decodeCase, getCase } from "@/lib/cases";
 import { open } from "@/lib/crypto";
 import { db } from "@/lib/db";
-import { baseUrl } from "@/lib/env";
 import { answerText, integrityCheck, studioText, displayId } from "@/lib/export";
 import { allItems } from "@/lib/instrument/forms";
 import { SG_MEANING, type SgCode } from "@/lib/instrument/safeguarding";
@@ -60,8 +60,8 @@ export default async function AdminCase({
   const openSg = sgRows.filter((r) => r.status === "open");
   const text = a ? studioText(c, parent, a) : "";
   const integrity = a ? integrityCheck(a) : null;
-  const studentUrl = `${baseUrl()}/s/${tokens.student}`;
-  const teacherUrl = `${baseUrl()}/t/${tokens.teacher}`;
+  const studentUrl = `${await siteUrl()}/s/${tokens.student}`;
+  const teacherUrl = `${await siteUrl()}/t/${tokens.teacher}`;
 
   const heldText = (source: string, item: string) => {
     const src = (source === "educator" ? "teacher" : source) as Source;
